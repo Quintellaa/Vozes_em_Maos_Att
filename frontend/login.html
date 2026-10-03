@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#2563eb"><title>Sinaliza — Login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"></head>
+<body data-page="login">
+<main class="app main form"><a class="back" href="index.html" aria-label="Voltar"><i data-i="back"></i></a>
+<h2>Bem-vindo de volta!</h2><p class="mute sm">Acesse sua conta para continuar suas traduções e estudos.</p>
+<form id="f" novalidate>
+<label class="lbl" for="em">E-MAIL</label><div class="inp"><i data-i="mail"></i><input id="em" type="email" placeholder="seu@email.com" autocomplete="email"></div>
+<div class="lbl"><label for="pw">SENHA</label><a class="link" href="#" data-toast="Enviamos um link ao seu e-mail">Esqueci a senha</a></div>
+<div class="inp"><i data-i="lock"></i><input id="pw" type="password" placeholder="••••••••" autocomplete="current-password"><button type="button" id="eye" aria-label="Mostrar senha"><i data-i="eye"></i></button></div>
+<p class="err" id="err" role="alert"></p><button class="btn pri" type="submit">Entrar</button></form>
+<p class="sm mute c" style="margin-top:auto">Não tem uma conta? <a class="link" href="#" data-toast="Cadastro em breve">Crie agora</a></p></main><div id="toast" role="status"></div><script src="js/dom.js"></script><script src="js/icons.js"></script><script src="js/storage.js"></script><script src="js/api.js"></script><script src="js/session.js"></script><script src="js/history.js"></script><script src="js/nav.js"></script><script src="js/recognizer.js"></script><script src="js/avatar.js"></script><script src="js/pages.js"></script><script src="js/app.js"></script></body></html>
