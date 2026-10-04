@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Variáveis de ambiente (segredos) — use backend/.env.example como modelo
+.env
+
+# Banco de dados local (recriado automaticamente ao subir a API)
+*.db
+*.sqlite3
