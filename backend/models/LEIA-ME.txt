@@ -1,0 +1,4 @@
+Coloque aqui o arquivo libras_svm.joblib gerado por tools/train_and_export.py.
+
+Sem ele, a API sobe normalmente e só a rota /recognition responde 503 —
+login, histórico e o resto do app continuam funcionando.

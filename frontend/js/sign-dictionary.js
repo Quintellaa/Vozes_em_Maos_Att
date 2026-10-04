@@ -1,76 +1,50 @@
-/* Sinaliza — dicionário de sinais (MOCK)
-   Isso NÃO são sinais reais de Libras — são gestos simplificados (braço levanta,
-   pulso balança) só para validar o pipeline de animação: texto → glosa → sequência
-   de rotações nas juntas do boneco 3D. Antes de qualquer uso real, isso precisa ser
-   substituído por dados de sinais de verdade (capturados ou autorados por alguém
-   fluente em Libras).
+/* Sinaliza — mapeamento texto digitado → sinal do avatar.
 
-   Formato de cada keyframe: { t: tempo em ms, rx, ry, rz: rotação em radianos }.
-   Cada junta tem sua própria lista de keyframes, ordenada por `t`.
+   As animações em si vêm de js/sign-animations.js, gerado por
+   tools/export_avatar_signs.py a partir de gravações REAIS do MINDS-Libras.
+   Aqui só traduzimos o que o usuário digitou para a chave do sinal.
+
+   LIMITE IMPORTANTE: o avatar só conhece os 20 sinais do dataset. Para qualquer
+   outra palavra, devolvemos null e o app AVISA que não sabe — de propósito.
+   Mostrar um sinal errado é pior que não mostrar nada: a pessoa que depende de
+   Libras não tem como saber que viu algo incorreto.
 */
-const SIGN_DICTIONARY = {
-  DEFAULT: {
-    durationMs: 1200,
-    keyframes: {
-      head: [
-        { t: 0, rx: 0, ry: 0, rz: 0 },
-        { t: 600, rx: 0, ry: 0.15, rz: 0 },
-        { t: 1200, rx: 0, ry: 0, rz: 0 }
-      ]
-    }
-  },
 
-  OI: {
-    durationMs: 1600,
-    keyframes: {
-      rightShoulder: [
-        { t: 0, rx: 0, ry: 0, rz: 0 },
-        { t: 300, rx: 0, ry: 0, rz: -1.6 },
-        { t: 1600, rx: 0, ry: 0, rz: -1.6 }
-      ],
-      rightElbow: [
-        { t: 0, rx: 0, ry: 0, rz: 0 },
-        { t: 300, rx: 0, ry: 0, rz: -0.3 },
-        { t: 1600, rx: 0, ry: 0, rz: -0.3 }
-      ],
-      rightWrist: [
-        { t: 300, rx: 0, ry: 0, rz: 0 },
-        { t: 600, rx: 0, ry: 0.6, rz: 0 },
-        { t: 900, rx: 0, ry: -0.6, rz: 0 },
-        { t: 1200, rx: 0, ry: 0.6, rz: 0 },
-        { t: 1600, rx: 0, ry: 0, rz: 0 }
-      ]
-    }
-  },
-
-  OBRIGADO: {
-    durationMs: 1400,
-    keyframes: {
-      rightShoulder: [
-        { t: 0, rx: 0, ry: 0, rz: 0 },
-        { t: 400, rx: 0, ry: 0, rz: -1.0 },
-        { t: 1000, rx: 0, ry: 0, rz: -0.2 },
-        { t: 1400, rx: 0, ry: 0, rz: 0 }
-      ],
-      rightElbow: [
-        { t: 0, rx: 0, ry: 0, rz: 0 },
-        { t: 400, rx: 0, ry: 0, rz: -1.4 },
-        { t: 1000, rx: 0, ry: 0, rz: -0.6 },
-        { t: 1400, rx: 0, ry: 0, rz: 0 }
-      ]
-    }
-  }
-};
-
-// MOCK: casamento simples de palavras-chave — não é tradução PT→glosa de verdade.
-// Isso deve virar uma etapa própria (NLP) quando o dicionário crescer.
-function textToGloss(text) {
-  const normalized = text
+// Tira acentos, pontuação e caixa, pra "Maçã!" casar com "MACA".
+function normalizeWord(text) {
+  return text
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, ''); // remove acentos
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, '')
+    .trim();
+}
 
-  if (normalized.includes('obrigad')) return 'OBRIGADO';
-  if (normalized.includes('ola') || /\boi\b/.test(normalized)) return 'OI';
-  return 'DEFAULT';
+// Palavras diferentes que levam ao mesmo sinal do dataset.
+const WORD_ALIASES = {
+  maca: 'MACA', maçã: 'MACA', maa: 'MACA',
+  banheiro: 'BANHEIRO', toalete: 'BANHEIRO',
+  '5': 'CINCO'
+};
+
+/** Retorna a chave do sinal, ou null se o avatar não conhecer a palavra. */
+function textToGloss(text) {
+  const normalized = normalizeWord(text);
+  if (!normalized) return null;
+
+  const available = typeof SIGN_ANIMATIONS === 'undefined' ? {} : SIGN_ANIMATIONS;
+
+  // Procura palavra por palavra: assim "quero maçã" encontra MACA.
+  for (const word of normalized.split(/\s+/)) {
+    const direct = word.toUpperCase();
+    if (available[direct]) return direct;
+    const alias = WORD_ALIASES[word];
+    if (alias && available[alias]) return alias;
+  }
+  return null;
+}
+
+/** Lista de palavras que o avatar sabe sinalizar (pra mostrar ao usuário). */
+function knownSigns() {
+  return typeof SIGN_ANIMATIONS === 'undefined' ? [] : Object.keys(SIGN_ANIMATIONS).sort();
 }

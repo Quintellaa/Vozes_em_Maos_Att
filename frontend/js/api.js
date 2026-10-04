@@ -67,5 +67,10 @@ const Api = {
 
   deleteHistoryEntry: id => apiRequest(`/history/${id}`, { method: 'DELETE', auth: true }),
 
-  clearHistory: () => apiRequest('/history', { method: 'DELETE', auth: true })
+  clearHistory: () => apiRequest('/history', { method: 'DELETE', auth: true }),
+
+  // frames: [{ hand: [21 pontos {x,y,z}] | null }, ...]
+  predictSign: frames => apiRequest('/recognition/predict', { method: 'POST', body: { frames }, auth: true }),
+
+  recognitionInfo: () => apiRequest('/recognition/info', { auth: true })
 };

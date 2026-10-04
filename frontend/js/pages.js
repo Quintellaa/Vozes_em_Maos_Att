@@ -88,14 +88,20 @@ const pages = {
     const inputEl = $('#txt');
     const videoEl = $('#video');
     const handsEl = $('#hands');
+    const overlayEl = $('#handOverlay');
 
     if (Storage.get('cam') === 'granted') {
       videoEl.hidden = false;
       handsEl.hidden = true;
+      transcriptEl.textContent = 'Sinalize uma palavra e faça uma pausa.';
       Recognizer.start(videoEl, {
-        onPhrase(phrase) {
-          transcriptEl.textContent = `"${phrase}"`;
-          addHistoryEntry('l', phrase).catch(reportApiError);
+        overlayEl,
+        onPhrase(gloss, confidence) {
+          transcriptEl.textContent = `"${gloss}" (${Math.round(confidence * 100)}%)`;
+          addHistoryEntry('l', gloss).catch(reportApiError);
+        },
+        onStatus(message) {
+          transcriptEl.textContent = message;
         },
         onError(message) {
           transcriptEl.textContent = message;
@@ -103,20 +109,31 @@ const pages = {
       });
     }
 
+    // O avatar só sabe os sinais do dataset. Quando não souber, avisamos em vez
+    // de animar algo errado — um sinal incorreto engana quem depende de Libras.
     function playText(text) {
-      outputEl.textContent = text;
-      Avatar.play(avatarEl, text);
+      const { known, gloss } = Avatar.play(avatarEl, text);
+      if (known) {
+        outputEl.textContent = gloss;
+        return true;
+      }
+      const lista = knownSigns();
+      outputEl.textContent = lista.length
+        ? `Ainda não sei esse sinal. Sei: ${lista.join(', ')}.`
+        : 'Nenhum sinal carregado.';
+      return false;
     }
 
-    $('#play').onclick = () => playText(outputEl.textContent || 'Olá! Como posso ajudar?');
+    $('#play').onclick = () => playText(inputEl.value.trim() || outputEl.textContent || '');
 
     $('#form').onsubmit = e => {
       e.preventDefault();
       const text = inputEl.value.trim();
       if (!text) return;
-      addHistoryEntry('t', text).catch(reportApiError);
-      playText(text);
-      inputEl.value = '';
+      if (playText(text)) {
+        addHistoryEntry('t', text).catch(reportApiError);
+        inputEl.value = '';
+      }
     };
 
     $('#swap').onclick = () => $('#cards').classList.toggle('flip');

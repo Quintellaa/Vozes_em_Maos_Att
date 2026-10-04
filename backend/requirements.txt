@@ -1,7 +1,7 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
 sqlalchemy==2.0.35
-psycopg2-binary==2.9.12
+psycopg2-binary==2.9.9
 pydantic==2.9.2
 pydantic-settings==2.5.2
 email-validator==2.2.0
@@ -10,6 +10,14 @@ passlib[bcrypt]==1.7.4
 bcrypt==4.0.1  # passlib 1.7.4 não reconhece bcrypt>=4.1 (remove passlib.__about__)
 python-multipart==0.0.9
 alembic==1.13.2
+
+# reconhecimento de Libras (rota /recognition) — a versão do scikit-learn aqui
+# precisa ser a MESMA usada em tools/train_and_export.py pra gerar o modelo
+numpy
+scikit-learn
+joblib
+# Sem versão fixa de propósito: o que importa é instalar AQUI a MESMA versão de
+# scikit-learn usada pra treinar. Confira com:  python -c "import sklearn; print(sklearn.__version__)"
 
 # usados quando a verificação REAL de login social (fase 1, item TODO) for implementada
 google-auth==2.34.0

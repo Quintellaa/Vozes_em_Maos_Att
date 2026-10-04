@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import Base, engine
-from app.routers import auth, history
+from app.routers import auth, history, recognition
 
 app = FastAPI(title="Sinaliza API", version="0.1.0")
 
@@ -18,6 +18,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(history.router)
+app.include_router(recognition.router)
 
 
 @app.on_event("startup")

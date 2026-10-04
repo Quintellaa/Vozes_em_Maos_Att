@@ -3,8 +3,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # Banco de dados
-    database_url: str = "postgresql://sinaliza:sinaliza@localhost:5432/sinaliza"
+    # Banco de dados — SQLite por padrão (arquivo local, sem precisar instalar nada).
+    # Para usar PostgreSQL de novo no futuro (ex.: com Docker), troque no .env:
+    # DATABASE_URL=postgresql://sinaliza:sinaliza@db:5432/sinaliza
+    database_url: str = "sqlite:///./sinaliza.db"
 
     # JWT
     jwt_secret_key: str = "changeme-generate-a-real-secret"
@@ -18,7 +20,18 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     apple_client_id: str = ""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    # Modelo de reconhecimento de Libras (gerado por tools/train_and_export.py).
+    # Se o arquivo não existir, a API sobe normalmente e só a rota de
+    # reconhecimento responde 503 — o resto do app continua funcionando.
+    model_path: str = "models/libras_svm.joblib"
+    min_confidence: float = 0.25  # abaixo disso, a API responde "não reconheci"
+
+    # protected_namespaces=(): o Pydantic reserva o prefixo "model_" pra uso
+    # interno e avisa sobre o nosso campo model_path. Como o campo é legítimo
+    # (caminho do modelo de reconhecimento), desligamos esse aviso.
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", protected_namespaces=()
+    )
 
 
 settings = Settings()
