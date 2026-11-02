@@ -49,16 +49,44 @@ const Prefs = {
   avisarSinal() {
     const prefs = this.todas();
     if (prefs.somSinal) this.bip();
-    if (prefs.vibrarSinal && navigator.vibrate) navigator.vibrate(80);
+    if (prefs.vibrarSinal) this.vibrar();
+  },
+
+  /** Vibração curta. Android: navigator.vibrate. iPhone não tem essa função, mas no iOS 18+
+      marcar um <input switch> faz o aparelho dar um "toque" — usamos um escondido pra isso. */
+  vibrar() {
+    if (navigator.vibrate) return navigator.vibrate(80);
+    const label = document.createElement('label');
+    label.setAttribute('aria-hidden', 'true');
+    label.style.display = 'none';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.setAttribute('switch', '');
+    label.appendChild(input);
+    document.head.appendChild(label);
+    label.click();
+    label.remove();
+    return true;
   },
 
   _audio: null,
+  /** Prepara o áudio. No iPhone ele só destrava dentro de um toque na tela, e o modo
+      silencioso cala o som da página — o tipo 'playback' faz o bip tocar mesmo assim. */
+  _audioPronto() {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    if (navigator.audioSession) {
+      try { navigator.audioSession.type = 'playback'; } catch (err) { /* navegador sem suporte */ }
+    }
+    this._audio = this._audio || new Ctx();
+    if (this._audio.state !== 'running') this._audio.resume().catch(() => {});
+    return this._audio;
+  },
+
   bip() {
     try {
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return;
-      this._audio = this._audio || new Ctx();
-      const ctx = this._audio;
+      const ctx = this._audioPronto();
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
@@ -121,10 +149,19 @@ const Prefs = {
 
   _dispararLembrete() {
     Storage.set('lembreteUltimo', new Date().toDateString());
-    this.notificar('Hora de praticar Libras ✋', 'Que tal treinar alguns sinais no Sinaliza hoje?');
+    this.notificar('Hora de praticar Libras ✋', 'Que tal treinar alguns sinais no Vozes em Mãos hoje?');
     this.agendarLembrete();
   }
 };
 
 Prefs.aplicar();
 Prefs.agendarLembrete();
+
+// O bip do Tradutor toca sem ninguém tocar na tela, mas o iPhone só libera o áudio dentro
+// de um toque. Com o som ligado, aproveitamos o primeiro toque em qualquer lugar da página.
+function destravarAudio() {
+  if (!Prefs.get('somSinal')) return;
+  Prefs._audioPronto();
+  ['touchend', 'click'].forEach(ev => document.removeEventListener(ev, destravarAudio, true));
+}
+['touchend', 'click'].forEach(ev => document.addEventListener(ev, destravarAudio, true));

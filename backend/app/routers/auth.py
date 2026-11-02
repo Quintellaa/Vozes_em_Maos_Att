@@ -141,7 +141,7 @@ def change_password(
     if not current_user.password_hash:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            "Sua conta entra pelo Google/Apple, então não tem senha no Sinaliza.",
+            "Sua conta entra pelo Google/Apple, então não tem senha no Vozes em Mãos.",
         )
     if not verify_password(payload.current_password, current_user.password_hash):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "A senha atual está incorreta.")

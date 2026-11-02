@@ -25,8 +25,14 @@ function finishLogin(session) {
     toast('Não foi possível salvar sua sessão neste navegador. Verifique o modo privado ou o bloqueio de cookies.');
     return;
   }
-  // Quem já respondeu sobre a câmera neste aparelho vai direto para o Tradutor.
-  location.href = Storage.get('cam') ? 'tradutor.html' : 'permissao.html';
+  // Quem já respondeu sobre a câmera com ESTA conta neste aparelho vai direto para o Tradutor.
+  location.href = Storage.get(cameraKey()) ? 'tradutor.html' : 'permissao.html';
+}
+
+// A resposta sobre a câmera (granted | denied | skipped) fica guardada por conta:
+// trocou de conta no mesmo aparelho, a tela de permissão aparece de novo.
+function cameraKey(user = getCurrentUser()) {
+  return 'cam:' + (user?.id ?? 'anon');
 }
 
 async function loginWithEmail(email, password) {

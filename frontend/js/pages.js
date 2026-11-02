@@ -46,7 +46,7 @@ const pages = {
       formCriar.hidden = !criar;
       $('#abaEntrar').setAttribute('aria-selected', String(!criar));
       $('#abaCriar').setAttribute('aria-selected', String(criar));
-      document.title = criar ? 'Sinaliza — Criar conta' : 'Sinaliza — Entrar';
+      document.title = criar ? 'Vozes em Mãos — Criar conta' : 'Vozes em Mãos — Entrar';
       history.replaceState(null, '', criar ? '#criar' : '#entrar');
       $('#errEntrar').textContent = $('#errCriar').textContent = '';
       if (focar) setTimeout(() => (criar ? $('#cNome') : $('#em')).focus(), 0);
@@ -165,16 +165,16 @@ const pages = {
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
           stream.getTracks().forEach(track => track.stop());
-          Storage.set('cam', 'granted');
+          Storage.set(cameraKey(), 'granted');
           goToTranslator();
         })
         .catch(() => {
-          Storage.set('cam', 'denied');
+          Storage.set(cameraKey(), 'denied');
           goToTranslator();
         });
     };
-    $('#deny').onclick = () => { Storage.set('cam', 'denied'); goToTranslator(); };
-    $('#skip').onclick = () => Storage.set('cam', 'skipped');
+    $('#deny').onclick = () => { Storage.set(cameraKey(), 'denied'); goToTranslator(); };
+    $('#skip').onclick = () => Storage.set(cameraKey(), 'skipped');
   },
 
   tradutor() {
@@ -213,7 +213,7 @@ const pages = {
       })
       .catch(() => { $('#knownList').textContent = 'Não foi possível carregar a lista.'; });
 
-    if (Storage.get('cam') === 'granted') {
+    if (Storage.get(cameraKey()) === 'granted') {
       videoEl.hidden = false;
       handsEl.hidden = true;
       transcriptEl.textContent = 'Sinalize uma palavra e faça uma pausa.';

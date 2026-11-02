@@ -54,7 +54,9 @@ def on_startup():
 
 @app.get("/health", tags=["health"])
 def health_check():
-    return {"status": "ok"}
+    # "database" mostra qual banco está em uso: na nuvem tem que ser "postgresql".
+    # Se aparecer "sqlite" lá, as contas somem toda vez que o servidor reinicia.
+    return {"status": "ok", "database": engine.dialect.name}
 
 
 # O próprio backend entrega o front-end (a pasta frontend/), pra o app funcionar

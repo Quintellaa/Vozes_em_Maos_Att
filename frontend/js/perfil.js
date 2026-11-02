@@ -57,7 +57,7 @@ const Perfil = {
       $('#formSenha').hidden = social;
       $('#senhaSocial').hidden = !social;
       $('#senhaSocial').textContent = social
-        ? `Você entra com ${PROVIDERS[provider] || provider}, então sua senha é gerenciada por lá — não existe senha do Sinaliza para alterar.`
+        ? `Você entra com ${PROVIDERS[provider] || provider}, então sua senha é gerenciada por lá — não existe senha do Vozes em Mãos para alterar.`
         : '';
     }
 
@@ -285,6 +285,7 @@ const Perfil = {
       Prefs.set(chave, inp.checked);
       sincronizarPrefs();
       if (chave === 'somSinal' && inp.checked) Prefs.bip();
+      if (chave === 'vibrarSinal' && inp.checked) Prefs.vibrar();
     }));
 
     $$('[data-pref-seg]').forEach(grupo => grupo.addEventListener('click', e => {
@@ -302,11 +303,11 @@ const Perfil = {
 
     $('#testarAviso').onclick = () => {
       Prefs.bip();
-      if (navigator.vibrate) navigator.vibrate(80);
+      Prefs.vibrar();
     };
 
     $('#ouvirVoz').onclick = () => {
-      if (!Speech.speak('Olá! Esta é a voz do Sinaliza.')) toast('Seu navegador não tem voz disponível.');
+      if (!Speech.speak('Olá! Esta é a voz do Vozes em Mãos.')) toast('Seu navegador não tem voz disponível.');
     };
 
     function atualizarStatusNotif() {
@@ -327,7 +328,7 @@ const Perfil = {
     }
     $('#notifPermitir').onclick = async () => {
       if (Prefs.statusNotificacao() === 'granted') {
-        if (!Prefs.notificar('Sinaliza', 'As notificações estão funcionando ✋')) toast('Não foi possível mostrar a notificação.');
+        if (!Prefs.notificar('Vozes em Mãos', 'As notificações estão funcionando ✋')) toast('Não foi possível mostrar a notificação.');
         return;
       }
       await Prefs.pedirPermissaoNotificacao();

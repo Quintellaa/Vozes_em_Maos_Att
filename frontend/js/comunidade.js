@@ -106,7 +106,7 @@ const ComunidadePage = {
     };
 
     function renderInfo() {
-      document.title = `Sinaliza — ${com.name}`;
+      document.title = `Vozes em Mãos — ${com.name}`;
       const cor = Comunidades.cor(com.color);
       $('#detHero').className = `cm-hero cm-hero-${cor}`;
       $('#detIc').className = `cm-info-ic pf-com-ic pf-cor-${cor}`;
