@@ -25,38 +25,20 @@ function finishLogin(session) {
     toast('Não foi possível salvar sua sessão neste navegador. Verifique o modo privado ou o bloqueio de cookies.');
     return;
   }
-  location.href = 'permissao.html';
+  // Quem já respondeu sobre a câmera neste aparelho vai direto para o Tradutor.
+  location.href = Storage.get('cam') ? 'tradutor.html' : 'permissao.html';
 }
 
-async function loginWithEmail(name, email, password) {
-  try {
-    finishLogin(await Api.login(email, password));
-  } catch (err) {
-    if (err.status !== 401) throw err;
-    // MOCK: ainda não existe uma tela de cadastro dedicada. Se o login falhar
-    // porque a conta não existe, criamos a conta na hora com os mesmos dados.
-    // TODO: remover esse fallback quando houver uma tela de "Criar conta" própria.
-    try {
-      finishLogin(await Api.register(name, email, password));
-    } catch (_registerErr) {
-      throw err; // mantém a mensagem original ("e-mail ou senha inválidos")
-    }
-  }
+async function loginWithEmail(email, password) {
+  finishLogin(await Api.login(email, password));
+}
+
+async function registerAccount(name, email, password) {
+  finishLogin(await Api.register(name, email, password));
 }
 
 async function loginSocial(provider, name, email) {
   finishLogin(await Api.socialLogin(provider, name, email));
-}
-
-// MOCK: usado pelo botão "Começar agora" (index.html) — entra direto com uma
-// conta de demonstração, sem pedir credenciais. TODO: remover quando o app
-// tiver uma tela de cadastro real.
-async function instantDemoLogin() {
-  try {
-    await loginSocial('google', DEFAULT_USER.name, DEFAULT_USER.email);
-  } catch (err) {
-    toast(err.message);
-  }
 }
 
 async function refreshCurrentUser() {
@@ -69,6 +51,55 @@ function logout() {
   Storage.remove(TOKEN_KEY);
   Storage.remove(USER_KEY);
   location.href = 'index.html';
+}
+
+// Bio (e, em versões antigas, a foto) ficam neste aparelho, separadas por conta.
+function getLocalProfile(user = getCurrentUser()) {
+  return Storage.get('perfilLocal:' + (user?.id ?? 'anon'), {}) || {};
+}
+
+// Endereço completo da foto de um usuário (vinda do servidor), ou null.
+function avatarSrc(user) {
+  return user?.avatar_url ? API_BASE_URL + user.avatar_url : null;
+}
+
+// A foto antes ficava só no navegador. Se ainda houver uma foto antiga aqui e a conta
+// não tiver foto no servidor, envia uma vez — assim ela passa a aparecer para todos.
+async function syncLocalPhoto(user) {
+  const local = getLocalProfile(user);
+  if (!local.foto || !user?.id) return user;
+  let atualizado = user;
+  if (!user.avatar_url) {
+    try {
+      atualizado = await Api.setAvatar(local.foto);
+      Storage.set(USER_KEY, atualizado);
+    } catch (err) {
+      return user; // tenta de novo numa próxima vez
+    }
+  }
+  const { foto, ...resto } = local;
+  Storage.set('perfilLocal:' + user.id, resto);
+  return atualizado;
+}
+
+// Desenha o avatar do usuário (foto, ou iniciais se não tiver foto) em todo
+// elemento com data-ini — ex.: o círculo no topo do Tradutor.
+function renderUserAvatar(root = document) {
+  const user = getCurrentUser() || DEFAULT_USER;
+  const foto = avatarSrc(user) || getLocalProfile(user).foto;
+  $$('[data-ini]', root).forEach(el => {
+    if (foto) {
+      el.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = foto;
+      img.alt = '';
+      img.className = 'ava-img';
+      el.appendChild(img);
+    } else {
+      el.textContent = initials(user.name || DEFAULT_USER.name);
+    }
+    if (el.hasAttribute('aria-label') && el.getAttribute('href')) el.setAttribute('aria-label', `Perfil de ${user.name}`);
+  });
 }
 
 function initials(name) {

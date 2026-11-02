@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#2563eb"><link rel="manifest" href="manifest.json"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Vozes em Mãos"><title>Vozes em Mãos — Comunidade</title><link rel="icon" type="image/png" href="img/icone-192.png"><link rel="apple-touch-icon" href="img/icone-apple.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"><link rel="stylesheet" href="css/perfil.css"><link rel="stylesheet" href="css/comunidade.css"></head>
+<body data-page="comunidade" data-auth>
+<div class="app">
+
+  <!-- ============ Lista / explorar ============ -->
+  <main class="main" id="vLista">
+    <div class="hd"><h2>Comunidades</h2><button type="button" class="cm-criar" id="btnNova"><i data-i="plus"></i>Criar</button></div>
+    <label class="search"><i data-i="search"></i><input id="q" type="search" placeholder="Buscar comunidades..." aria-label="Buscar comunidades"></label>
+    <div class="pills" id="pills">
+      <button class="pill on" data-f="">Todas</button>
+      <button class="pill" data-f="minhas">Minhas</button>
+      <button class="pill" data-f="estudos">Estudos</button>
+      <button class="pill" data-f="saude">Saúde</button>
+      <button class="pill" data-f="trabalho">Trabalho</button>
+      <button class="pill" data-f="cultura">Cultura</button>
+      <button class="pill" data-f="familia">Família</button>
+    </div>
+    <div class="cm-lista" id="lista" aria-live="polite"></div>
+  </main>
+
+  <!-- ============ Detalhe de uma comunidade ============ -->
+  <div class="cm-det" id="vDet" hidden>
+    <header class="cm-hero" id="detHero">
+      <button type="button" class="pf-round" id="detVoltar" aria-label="Voltar"><i data-i="back"></i></button>
+    </header>
+    <div class="cm-det-body">
+      <section class="cm-info">
+        <span class="cm-info-ic pf-com-ic" id="detIc"></span>
+        <h2 id="detNome"></h2>
+        <p class="cm-meta" id="detMeta"></p>
+        <p class="cm-desc" id="detDesc"></p>
+        <button type="button" class="pf-btn cm-entrar-grande" id="detEntrar"></button>
+      </section>
+
+      <div class="sec"><span>MURAL</span><span class="cm-sec-info" id="detQtd"></span></div>
+
+      <form class="cm-composer" id="composer" hidden>
+        <span class="ava cm-ava" data-ini></span>
+        <div class="cm-composer-campo">
+          <textarea id="inPost" rows="2" maxlength="1000" placeholder="Compartilhe uma dúvida, dica ou sinal..." aria-label="Escrever publicação"></textarea>
+          <div class="cm-composer-pe"><small id="postCount">0/1000</small><button type="submit" class="pf-btn" id="btnPublicar" disabled>Publicar</button></div>
+        </div>
+      </form>
+      <div class="cm-convite" id="convite" hidden>
+        <b>Participe para publicar</b>
+        <small>Entre na comunidade para escrever no mural e conversar com as pessoas.</small>
+      </div>
+
+      <div class="cm-posts" id="posts" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <nav class="tabs" id="nav"></nav>
+</div>
+
+<!-- ============ Criar comunidade ============ -->
+<div class="pf-sheet" id="sheetNova" hidden>
+  <div class="pf-backdrop" data-fechar></div>
+  <form class="pf-panel" id="formNova" novalidate role="dialog" aria-modal="true" aria-labelledby="tNova">
+    <div class="pf-grab"></div>
+    <div class="pf-panel-head">
+      <button type="button" class="pf-txtbtn" data-fechar>Cancelar</button>
+      <h3 id="tNova" tabindex="-1">Nova comunidade</h3>
+      <button type="submit" class="pf-txtbtn pf-strong" id="btnCriar">Criar</button>
+    </div>
+
+    <div class="cm-preview">
+      <span class="pf-com-ic" id="prevIc"></span>
+      <div><strong id="prevNome">Nome da comunidade</strong><small id="prevCat">Geral</small></div>
+    </div>
+
+    <label class="pf-field"><span>Nome</span><input id="inNomeCom" maxlength="60" required placeholder="Ex.: Libras para Enfermagem"><em class="pf-err" id="errNomeCom"></em></label>
+    <label class="pf-field"><span>Descrição <small id="descCount">0/280</small></span><textarea id="inDescCom" rows="3" maxlength="280" placeholder="Sobre o que é o grupo?"></textarea></label>
+    <label class="pf-field"><span>Categoria</span>
+      <select id="inCatCom" class="cm-select">
+        <option value="estudos">Estudos</option><option value="saude">Saúde</option><option value="trabalho">Trabalho</option>
+        <option value="cultura">Cultura</option><option value="familia">Família</option><option value="geral" selected>Geral</option>
+      </select>
+    </label>
+    <p class="pf-rotulo" id="lblIcone">Ícone</p>
+    <div class="cm-escolha" id="escIcone" role="radiogroup" aria-labelledby="lblIcone"></div>
+    <p class="pf-rotulo" id="lblCor">Cor</p>
+    <div class="cm-escolha" id="escCor" role="radiogroup" aria-labelledby="lblCor"></div>
+  </form>
+</div>
+
+<div id="toast" role="status"></div>
+<script src="js/dom.js"></script><script src="js/icons.js"></script><script src="js/storage.js"></script><script src="js/preferencias.js"></script><script src="js/api.js"></script><script src="js/session.js"></script><script src="js/history.js"></script><script src="js/nav.js"></script><script src="js/comunidades.js"></script><script src="js/comunidade.js"></script><script src="js/pages.js"></script><script src="js/app.js"></script>
+</body></html>

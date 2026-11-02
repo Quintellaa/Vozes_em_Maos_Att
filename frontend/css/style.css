@@ -19,7 +19,19 @@ p{margin:0}h1{font-size:32px;font-weight:800;margin:0;letter-spacing:-.02em}h2{f
 .hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;margin-top:40px}
 .hero p{max-width:260px;line-height:1.5;color:var(--mute);font-size:15px}
 .logo{width:72px;height:72px;border-radius:20px;background:var(--blue);display:grid;place-items:center;font-size:34px;box-shadow:0 12px 24px -10px rgba(37,99,235,.7)}
-.logo.s{width:32px;height:32px;border-radius:9px;font-size:16px;box-shadow:none}
+.logo.s{width:32px;height:32px;border-radius:9px;font-size:16px;box-shadow:none;background:#fff1dd;overflow:hidden}
+.logo.s img{width:100%;height:100%;object-fit:contain}
+/* Mascote da tela inicial: entra pulando, depois flutua e balança como se acenasse.
+   A sombra embaixo encolhe quando ele sobe. Tocar nele faz um aceno rápido. */
+.mascote{position:relative;width:min(160px,20dvh);margin-bottom:6px;animation:mascote-entra .7s cubic-bezier(.34,1.56,.64,1) both}
+.mascote img{display:block;width:100%;height:auto;transform-origin:50% 100%;animation:mascote-flutua 3.2s ease-in-out .7s infinite;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
+.mascote::after{content:"";position:absolute;left:18%;right:18%;bottom:-6px;height:10px;border-radius:50%;background:rgba(15,23,42,.12);animation:mascote-sombra 3.2s ease-in-out .7s infinite;z-index:-1}
+.mascote:active img{animation:mascote-aceno .5s ease-in-out}
+@keyframes mascote-entra{0%{opacity:0;transform:translateY(30px) scale(.6)}100%{opacity:1;transform:none}}
+@keyframes mascote-flutua{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-7px) rotate(-3deg)}50%{transform:translateY(-10px) rotate(0)}75%{transform:translateY(-7px) rotate(3deg)}}
+@keyframes mascote-sombra{0%,100%{transform:scaleX(1);opacity:1}50%{transform:scaleX(.8);opacity:.6}}
+@keyframes mascote-aceno{0%,100%{transform:rotate(0)}20%{transform:rotate(-10deg)}40%{transform:rotate(9deg)}60%{transform:rotate(-7deg)}80%{transform:rotate(5deg)}}
+@media (prefers-reduced-motion:reduce){.mascote,.mascote img,.mascote::after{animation:none}}
 .stack{display:flex;flex-direction:column;gap:12px}
 .foot{display:flex;justify-content:center;gap:16px;font-size:12px;color:var(--mute)}.foot a{color:inherit;text-decoration:none}
 /* login */
@@ -56,6 +68,26 @@ p{margin:0}h1{font-size:32px;font-weight:800;margin:0;letter-spacing:-.02em}h2{f
 .hands{position:absolute;inset:0;display:grid;place-items:center;font-size:72px;opacity:.85}
 .trans{position:absolute;left:12px;right:12px;bottom:12px;z-index:2;background:rgba(255,255,255,.95);color:var(--ink);border-radius:16px;padding:10px 14px;border-left:3px solid var(--blue);font-size:14px;font-weight:700;line-height:1.35}
 .trans small{display:block;color:var(--mute);font-size:10px;letter-spacing:.06em;margin-bottom:2px}
+.phrase{margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.phrase p{margin:0 0 6px;font-size:16px;font-weight:800;color:var(--blue)}
+.phrase-act{display:flex;gap:8px}
+.phrase-act button{font-size:12px;font-weight:700;padding:6px 12px;border-radius:99px;background:var(--tint);color:var(--blue)}
+.phrase-act button+button{background:var(--soft);color:var(--mute)}
+.known{margin-top:6px;font-size:11px;font-weight:500;color:var(--mute)}
+.known summary{cursor:pointer;font-weight:700}.known p{margin:4px 0 0;line-height:1.4}
+.libras{display:flex;flex-direction:column;gap:8px;padding:44px 12px 12px}
+.libras-stage{flex:1;min-height:0;border-radius:16px;display:grid;place-items:center;background:rgba(255,255,255,.04);text-align:center}
+.libras-hint{color:#94a3b8;font-size:14px;line-height:1.5;max-width:260px;margin:0;padding:0 12px}
+.libras-foot{display:flex;align-items:center;gap:10px;min-height:36px}
+.libras-text{margin:0;flex:1;font-size:15px;font-weight:700;line-height:1.3;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.libras .play{position:static;transform:none;flex:none}
+/* botão flutuante do VLibras: o avatar abre direto no nosso card (ver js/vlibras.js) */
+#vlibras-access{display:none!important}
+/* Com o avatar aberto, o VLibras sublinha qualquer texto sob o mouse e troca o
+   cursor (modo "clique pra traduzir"). No nosso app isso só confunde. Os :not(#...)
+   só aumentam a prioridade da regra pra vencer a do VLibras. */
+html body #app .vlibras--hover:not(#vw-a):not(#vw-b),
+html body #app .vlibras--active:not(#vw-a):not(#vw-b){text-decoration:none!important;cursor:inherit!important}
 .dark{background:linear-gradient(160deg,#1e293b,#0f172a)}
 .face3d{position:absolute;top:8px;left:8px;right:8px;bottom:60px}
 .face3d canvas{width:100%!important;height:100%!important;display:block}
@@ -104,3 +136,66 @@ p{margin:0}h1{font-size:32px;font-weight:800;margin:0;letter-spacing:-.02em}h2{f
 .sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s}
 .sw:checked{background:var(--green)}.sw:checked::after{transform:translateX(18px)}
 @media (prefers-reduced-motion:reduce){.sw,.sw::after{transition:none}}
+
+/* ---- Gravar sinais (gravar.html) ---- */
+.rec{gap:12px;overflow-y:auto}
+.rec-form{display:flex;gap:8px;flex-wrap:wrap}
+.rec-field{flex:1 1 140px;display:flex;flex-direction:column;gap:4px}
+.rec-field small{font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--mute)}
+.rec-field input,.rec-field select{height:44px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font:inherit;background:#fff;color:var(--ink)}
+.rec-reps{flex:0 0 110px}
+.rec-cam{flex:none;aspect-ratio:4/3;min-height:0}
+.rec-cam video{transform:scaleX(-1)}
+.rec-count{position:absolute;top:12px;right:12px;z-index:2;background:rgba(15,23,42,.75);color:#fff;font-weight:800;font-size:22px;padding:6px 14px;border-radius:14px}
+.rec-count.ok{animation:recok .6s}
+@keyframes recok{0%{background:var(--green);transform:scale(1.15)}100%{background:rgba(15,23,42,.75);transform:scale(1)}}
+.rec-actions{display:flex;gap:8px;flex-wrap:wrap}.rec-actions .btn{flex:1 1 140px;height:46px;font-size:14px}
+.rec-actions .btn:disabled{opacity:.45}
+.rec-help{font-size:13px;color:var(--mute);line-height:1.5}.rec-help summary{font-weight:700;cursor:pointer;color:var(--ink)}
+.rec-help ul{margin:6px 0 0;padding-left:18px}
+
+.rec-ref{border:1px solid var(--line);border-radius:16px;padding:10px 12px;font-size:13px}
+.rec-ref summary{font-weight:700;cursor:pointer}
+.rec-ref[open]{display:flex;flex-direction:column;gap:8px}
+.rec-ref-stage{height:240px;border-radius:12px;background:var(--soft);margin-top:8px}
+.rec-ref .btn{height:42px;font-size:14px}.rec-ref p{margin:0}
+.rec-framing{position:absolute;top:12px;left:12px;z-index:2;font-size:12px;font-weight:700;padding:6px 10px;border-radius:99px;color:#fff}
+.rec-framing.ok{background:var(--green)}.rec-framing.bad{background:var(--red)}
+
+/* ===== Acessibilidade (Perfil > Acessibilidade, aplicado por js/preferencias.js) ===== */
+/* Tamanho do texto: amplia a tela inteira do app mantendo a altura da janela */
+html[data-texto="grande"] .app{zoom:1.12;height:calc(100dvh / 1.12)}
+html[data-texto="maior"] .app{zoom:1.25;height:calc(100dvh / 1.25)}
+/* Alto contraste */
+html[data-alto-contraste]{--ink:#000;--mute:#1f2937;--line:#111827;--soft:#fff;--blue:#1d4ed8}
+html[data-alto-contraste] body{background:#000}
+html[data-alto-contraste] .app{color:#000}
+html[data-alto-contraste] .set,html[data-alto-contraste] .com button,html[data-alto-contraste] .pf-com-card,html[data-alto-contraste] .item,html[data-alto-contraste] .tabs{border:2px solid #000!important}
+html[data-alto-contraste] a,html[data-alto-contraste] .link{text-decoration:underline}
+html[data-alto-contraste] :focus-visible{outline:3px solid #f59e0b!important;outline-offset:2px}
+html[data-alto-contraste] small,html[data-alto-contraste] .mute{color:#111827!important}
+/* Reduzir animações */
+html[data-reduzir-animacoes] *,html[data-reduzir-animacoes] *::before,html[data-reduzir-animacoes] *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+/* Foto do usuário dentro do círculo de avatar (Tradutor e demais telas) */
+.ava{overflow:hidden}
+.ava .ava-img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%}
+.btn.out{color:var(--ink)}
+
+/* ---- Tradutor: caixa de transcrição compacta (não cobre o vídeo) ---- */
+.trans.trans-sm{left:10px;right:10px;bottom:10px;padding:6px 10px;border-radius:12px;font-size:13px;line-height:1.3;
+  background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.trans-sm .phrase{margin-top:4px;padding-top:4px}
+.trans-sm .phrase p{font-size:14px;margin:0 0 4px}
+.trans-sm .phrase-act button{padding:4px 10px;font-size:11px}
+/* "Sinais que reconheço" virou um botãozinho no canto de cima do vídeo */
+.known-chip{position:absolute;top:12px;right:12px;z-index:3;margin:0;max-width:calc(100% - 24px);font-size:11px;color:var(--ink)}
+.known-chip summary{list-style:none;cursor:pointer;font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  padding:5px 10px;border-radius:99px;background:rgba(15,23,42,.6);color:#fff;text-align:right;width:max-content;margin-left:auto}
+.known-chip summary::-webkit-details-marker{display:none}
+.known-chip[open] p{margin:6px 0 0;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.95);line-height:1.4;max-width:260px}
+
+.rec-import{border:1px solid var(--line);border-radius:16px;padding:10px 12px;font-size:13px;color:var(--ink)}
+.rec-import summary{font-weight:700;cursor:pointer}
+.rec-import ol{margin:8px 0;padding-left:18px;line-height:1.5;color:var(--mute)}
+.rec-file{height:44px;font-size:14px;cursor:pointer;margin:6px 0}
+.rec-import p{margin:4px 0 0}

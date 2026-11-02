@@ -10,3 +10,9 @@ venv/
 # Banco de dados local (recriado automaticamente ao subir a API)
 *.db
 *.sqlite3
+
+# Relatório/imagem gerados pelo treino (rode tools/train_and_export.py pra recriar)
+tools/relatorio_treino.png
+
+# Vídeos da V-LIBRASIL: a licença não permite redistribuir (tools/baixar_librasil.py baixa de novo)
+dados/librasil_videos/

@@ -1,23 +1,32 @@
-fastapi==0.115.0
-uvicorn[standard]==0.30.6
-sqlalchemy==2.0.35
-psycopg2-binary==2.9.9
-pydantic==2.9.2
-pydantic-settings==2.5.2
-email-validator==2.2.0
+# Versões mínimas (>=) em vez de fixas (==): as fixas antigas não tinham pacote pronto
+# pro Python 3.14 e o pip tentava compilar o pydantic-core do zero (e falhava no Windows).
+fastapi>=0.115
+uvicorn[standard]>=0.30
+sqlalchemy>=2.0.35
+# PostgreSQL: só necessário se trocar DATABASE_URL pra postgresql://. O padrão é SQLite.
+# Comentado porque não compila em Python 3.13+ e quebrava o `pip install` de quem só usa SQLite.
+# psycopg2-binary==2.9.9
+pydantic>=2.12  # 2.12+ tem pacote pronto pro Python 3.14
+pydantic-settings>=2.5
+email-validator>=2.2
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1  # passlib 1.7.4 não reconhece bcrypt>=4.1 (remove passlib.__about__)
-python-multipart==0.0.9
-alembic==1.13.2
+python-multipart>=0.0.9
+alembic>=1.13
 
 # reconhecimento de Libras (rota /recognition) — a versão do scikit-learn aqui
 # precisa ser a MESMA usada em tools/train_and_export.py pra gerar o modelo
 numpy
-scikit-learn
+scikit-learn==1.9.1  # = versão gravada no models/libras_pose_hands.joblib. Retreinou? Atualize aqui.
 joblib
-# Sem versão fixa de propósito: o que importa é instalar AQUI a MESMA versão de
-# scikit-learn usada pra treinar. Confira com:  python -c "import sklearn; print(sklearn.__version__)"
 
 # usados quando a verificação REAL de login social (fase 1, item TODO) for implementada
-google-auth==2.34.0
+google-auth>=2.34
+
+# imagem da matriz de confusão no relatório de treino (tools/train_and_export.py)
+matplotlib
+
+# testes (pytest -q dentro de backend/)
+pytest
+httpx

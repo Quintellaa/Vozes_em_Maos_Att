@@ -13,7 +13,10 @@ from app.config import settings
 # threads diferentes); Postgres não precisa e por isso fica de fora nesse caso.
 connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
 
-engine = create_engine(settings.database_url, pool_pre_ping=True, connect_args=connect_args)
+# Alguns serviços de nuvem entregam o endereço como "postgres://", que o SQLAlchemy não aceita.
+database_url = settings.database_url.replace("postgres://", "postgresql://", 1)
+
+engine = create_engine(database_url, pool_pre_ping=True, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

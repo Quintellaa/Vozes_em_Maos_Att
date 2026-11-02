@@ -23,8 +23,12 @@ class Settings(BaseSettings):
     # Modelo de reconhecimento de Libras (gerado por tools/train_and_export.py).
     # Se o arquivo não existir, a API sobe normalmente e só a rota de
     # reconhecimento responde 503 — o resto do app continua funcionando.
-    model_path: str = "models/libras_svm.joblib"
+    model_path: str = "models/libras_pose_hands.joblib"
     min_confidence: float = 0.25  # abaixo disso, a API responde "não reconheci"
+
+    # Pasta do front-end que o backend entrega em "/". Vazio = ../frontend (layout do repositório).
+    # No Docker (Dockerfile da raiz) é /code/frontend.
+    frontend_dir: str = ""
 
     # protected_namespaces=(): o Pydantic reserva o prefixo "model_" pra uso
     # interno e avisa sobre o nosso campo model_path. Como o campo é legítimo

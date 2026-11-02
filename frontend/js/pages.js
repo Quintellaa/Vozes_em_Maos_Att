@@ -1,6 +1,9 @@
 /* Sinaliza — lógica específica de cada tela */
 const pages = {
-  index() {},
+  index() {
+    // Já está logado? Vai direto para o app.
+    if (getToken()) location.replace('tradutor.html');
+  },
 
   google() {
     // MOCK: login social sem OAuth real — troque por Google Identity Services antes de produção.
@@ -30,34 +33,127 @@ const pages = {
   },
 
   login() {
-    $('#eye').onclick = () => {
-      const pw = $('#pw');
-      pw.type = pw.type === 'password' ? 'text' : 'password';
+    if (getToken()) return location.replace('tradutor.html');
+
+    const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    const formEntrar = $('#fEntrar');
+    const formCriar = $('#fCriar');
+
+    // ---- Abas Entrar / Criar conta (login.html#criar abre direto no cadastro) ----
+    function mostrar(modo, focar = true) {
+      const criar = modo === 'criar';
+      formEntrar.hidden = criar;
+      formCriar.hidden = !criar;
+      $('#abaEntrar').setAttribute('aria-selected', String(!criar));
+      $('#abaCriar').setAttribute('aria-selected', String(criar));
+      document.title = criar ? 'Sinaliza — Criar conta' : 'Sinaliza — Entrar';
+      history.replaceState(null, '', criar ? '#criar' : '#entrar');
+      $('#errEntrar').textContent = $('#errCriar').textContent = '';
+      if (focar) setTimeout(() => (criar ? $('#cNome') : $('#em')).focus(), 0);
+    }
+    $('#abaEntrar').onclick = () => mostrar('entrar');
+    $('#abaCriar').onclick = () => mostrar('criar');
+    document.addEventListener('click', e => {
+      const link = e.target.closest('[data-ir]');
+      if (!link) return;
+      e.preventDefault();
+      // leva o e-mail digitado de um formulário para o outro
+      if (link.dataset.ir === 'entrar' && $('#cEm').value) $('#em').value = $('#cEm').value;
+      if (link.dataset.ir === 'criar' && $('#em').value) $('#cEm').value = $('#em').value;
+      mostrar(link.dataset.ir);
+    });
+    mostrar(location.hash === '#criar' ? 'criar' : 'entrar', false);
+    // apaga a mensagem de erro assim que a pessoa volta a digitar
+    formEntrar.addEventListener('input', () => { $('#errEntrar').textContent = ''; });
+    formCriar.addEventListener('input', () => { $('#errCriar').textContent = ''; });
+
+    // ---- Mostrar/ocultar senha ----
+    $$('[data-olho]').forEach(btn => {
+      btn.onclick = () => {
+        const inp = $('#' + btn.dataset.olho);
+        const ver = inp.type === 'password';
+        inp.type = ver ? 'text' : 'password';
+        btn.setAttribute('aria-pressed', String(ver));
+        btn.setAttribute('aria-label', ver ? 'Ocultar senha' : 'Mostrar senha');
+      };
+    });
+
+    $('#esqueci').onclick = e => {
+      e.preventDefault();
+      toast('Recuperar senha ainda não está disponível. Se esqueceu, crie uma nova conta ou fale com o suporte.');
     };
 
-    $('#f').onsubmit = async e => {
+    async function enviando(btn, texto, acao) {
+      const original = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = texto;
+      try { await acao(); } finally { btn.disabled = false; btn.textContent = original; }
+    }
+
+    // ---- Entrar ----
+    formEntrar.onsubmit = async e => {
       e.preventDefault();
+      const err = $('#errEntrar');
       const email = $('#em').value.trim();
-      const password = $('#pw').value;
+      const senha = $('#pw').value;
+      err.textContent = '';
+      if (!EMAIL_OK.test(email)) { err.textContent = 'Digite um e-mail válido, como nome@email.com.'; return $('#em').focus(); }
+      if (!senha) { err.textContent = 'Digite sua senha.'; return $('#pw').focus(); }
 
-      if (!/^\S+@\S+\.\S+$/.test(email)) {
-        $('#err').textContent = 'Digite um e-mail válido, como nome@email.com.';
-        return;
-      }
-      if (password.length < 6) {
-        $('#err').textContent = 'A senha precisa ter ao menos 6 caracteres.';
-        return;
-      }
+      await enviando($('#btnEntrar'), 'Entrando…', async () => {
+        try {
+          await loginWithEmail(email, senha);
+        } catch (ex) {
+          err.textContent = ex.message;
+          if (ex.status === 401) {
+            err.insertAdjacentHTML('beforeend', ' Ainda não tem conta? <a href="#criar" data-ir="criar">Crie agora</a>.');
+            $('#pw').select();
+          }
+        }
+      });
+    };
 
-      $('#err').textContent = '';
-      const handle = email.split('@')[0];
-      const name = handle[0].toUpperCase() + handle.slice(1);
+    // ---- Criar conta ----
+    function forcaSenha(s) {
+      if (!s) return 0;
+      let pontos = 0;
+      if (s.length >= 6) pontos++;
+      if (s.length >= 10) pontos++;
+      if (/[a-z]/i.test(s) && /\d/.test(s)) pontos++;
+      if (/[^a-z0-9]/i.test(s)) pontos++;
+      return s.length < 6 ? 1 : Math.min(3, Math.max(1, pontos));
+    }
+    $('#cPw').oninput = () => {
+      const v = $('#cPw').value;
+      const nivel = forcaSenha(v);
+      $('#forca').dataset.nivel = nivel;
+      $('#forca small').textContent = !v ? '' : v.length < 6 ? 'Muito curta' : ['', 'Fraca', 'Média', 'Forte'][nivel];
+    };
 
-      try {
-        await loginWithEmail(name, email, password);
-      } catch (err) {
-        $('#err').textContent = err.message;
-      }
+    formCriar.onsubmit = async e => {
+      e.preventDefault();
+      const err = $('#errCriar');
+      const nome = $('#cNome').value.replace(/\s+/g, ' ').trim();
+      const email = $('#cEm').value.trim();
+      const senha = $('#cPw').value;
+      const conf = $('#cPw2').value;
+      err.textContent = '';
+      if (nome.length < 2) { err.textContent = 'Digite seu nome (mínimo 2 letras).'; return $('#cNome').focus(); }
+      if (!EMAIL_OK.test(email)) { err.textContent = 'Digite um e-mail válido, como nome@email.com.'; return $('#cEm').focus(); }
+      if (senha.length < 6) { err.textContent = 'A senha precisa ter ao menos 6 caracteres.'; return $('#cPw').focus(); }
+      if (senha !== conf) { err.textContent = 'As senhas não são iguais.'; return $('#cPw2').focus(); }
+
+      await enviando($('#btnCriar'), 'Criando conta…', async () => {
+        try {
+          await registerAccount(nome, email, senha);
+        } catch (ex) {
+          err.textContent = ex.message;
+          if (ex.status === 409) {
+            err.textContent = 'Este e-mail já tem uma conta. ';
+            err.insertAdjacentHTML('beforeend', '<a href="#entrar" data-ir="entrar">Entrar com ele</a>.');
+          }
+        }
+      });
     };
   },
 
@@ -84,11 +180,38 @@ const pages = {
   tradutor() {
     const transcriptEl = $('#trans');
     const outputEl = $('#out');
-    const avatarEl = $('#avatar');
     const inputEl = $('#txt');
     const videoEl = $('#video');
     const handsEl = $('#hands');
     const overlayEl = $('#handOverlay');
+
+    // ---- Frase: os sinais reconhecidos vão se juntando, um depois do outro ----
+    const phraseWords = [];
+    const phraseBoxEl = $('#phraseBox');
+    const phraseEl = $('#phrase');
+
+    function renderPhrase() {
+      phraseBoxEl.hidden = phraseWords.length === 0;
+      phraseEl.textContent = phraseWords.join(' ');
+    }
+
+    $('#speak').onclick = () => {
+      if (!Speech.speak(phraseWords.join(' '))) toast('Seu navegador não tem voz disponível.');
+    };
+
+    $('#clearPhrase').onclick = () => {
+      phraseWords.length = 0;
+      renderPhrase();
+    };
+
+    // ---- Lista de sinais que o modelo conhece (vem da API, não fica fixa no front) ----
+    Api.recognitionInfo()
+      .then(info => {
+        $('#knownList').textContent = info.available
+          ? info.classes.map(g => info.words?.[g] || glossToWord(g)).join(', ')
+          : 'Reconhecimento indisponível no servidor no momento.';
+      })
+      .catch(() => { $('#knownList').textContent = 'Não foi possível carregar a lista.'; });
 
     if (Storage.get('cam') === 'granted') {
       videoEl.hidden = false;
@@ -96,9 +219,14 @@ const pages = {
       transcriptEl.textContent = 'Sinalize uma palavra e faça uma pausa.';
       Recognizer.start(videoEl, {
         overlayEl,
-        onPhrase(gloss, confidence) {
-          transcriptEl.textContent = `"${gloss}" (${Math.round(confidence * 100)}%)`;
-          addHistoryEntry('l', gloss).catch(reportApiError);
+        onPhrase(gloss, confidence, alternatives, word) {
+          transcriptEl.textContent = `"${word}" (${Math.round(confidence * 100)}%)`;
+          phraseWords.push(word);
+          renderPhrase();
+          // a pessoa ouvinte escuta na hora, sem olhar a tela (pode desligar em Perfil > Acessibilidade)
+          if (Prefs.get('falarSinais')) Speech.speak(word);
+          Prefs.avisarSinal(); // som/vibração, conforme Perfil > Notificações
+          addHistoryEntry('l', word).catch(reportApiError);
         },
         onStatus(message) {
           transcriptEl.textContent = message;
@@ -109,30 +237,37 @@ const pages = {
       });
     }
 
-    // O avatar só sabe os sinais do dataset. Quando não souber, avisamos em vez
-    // de animar algo errado — um sinal incorreto engana quem depende de Libras.
-    function playText(text) {
-      const { known, gloss } = Avatar.play(avatarEl, text);
-      if (known) {
-        outputEl.textContent = gloss;
+    // Texto → Libras: quem sinaliza é o avatar do VLibras (ver js/vlibras.js).
+    const playBtn = $('#play');
+    let lastText = '';
+
+    LibrasPlayer.embedIn($('#librasStage')); // o avatar aparece dentro do nosso card
+    LibrasPlayer.start(); // prepara o VLibras, sem abrir o avatar ainda
+
+    async function signText(text) {
+      lastText = text;
+      if (!LibrasPlayer.ready()) toast('Carregando o avatar do VLibras (a 1ª vez demora)...');
+      $('#librasHint').hidden = true;
+      playBtn.hidden = false;
+      try {
+        outputEl.textContent = text;
+        await LibrasPlayer.sign(text);
         return true;
+      } catch (err) {
+        toast(err.message);
+        return false;
       }
-      const lista = knownSigns();
-      outputEl.textContent = lista.length
-        ? `Ainda não sei esse sinal. Sei: ${lista.join(', ')}.`
-        : 'Nenhum sinal carregado.';
-      return false;
     }
 
-    $('#play').onclick = () => playText(inputEl.value.trim() || outputEl.textContent || '');
+    playBtn.onclick = () => { if (lastText) signText(lastText); };
 
-    $('#form').onsubmit = e => {
+    $('#form').onsubmit = async e => {
       e.preventDefault();
       const text = inputEl.value.trim();
       if (!text) return;
-      if (playText(text)) {
+      inputEl.value = '';
+      if (await signText(text)) {
         addHistoryEntry('t', text).catch(reportApiError);
-        inputEl.value = '';
       }
     };
 
@@ -229,16 +364,13 @@ const pages = {
     render();
   },
 
+  comunidade() {
+    // Lista, busca, criação e mural de cada comunidade ficam em js/comunidade.js.
+    ComunidadePage.init();
+  },
+
   perfil() {
-    const applyUser = user => {
-      $('#nm').textContent = user.name;
-      $('#hd').textContent = `Tradutor Iniciante • @${user.handle}`;
-    };
-
-    applyUser(getCurrentUser());
-    // Atualiza com os dados mais recentes do servidor, sem travar a tela enquanto isso.
-    refreshCurrentUser().then(applyUser).catch(reportApiError);
-
-    $('#exit').onclick = logout;
+    // Toda a tela de perfil (dados, foto, comunidades, configurações) fica em js/perfil.js.
+    Perfil.init();
   }
 };

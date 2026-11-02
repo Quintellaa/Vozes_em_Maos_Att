@@ -1,0 +1,30 @@
+/* ===== Login / Criar conta (complementa style.css) ===== */
+.lg { gap: 0; }
+.lg .back { flex: none; }
+.lg form { display: flex; flex-direction: column; gap: 8px; }
+.lg form[hidden] { display: none; }
+.lg .lbl { margin-top: 8px; }
+.lg .btn.pri { margin-top: 4px; }
+.lg .btn:disabled { opacity: .7; cursor: default; }
+
+.lg-abas {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-top: 16px;
+  background: var(--soft); border: 1px solid var(--line); border-radius: 14px;
+}
+.lg-abas button { height: 40px; border-radius: 10px; font-weight: 700; font-size: 14px; color: var(--mute); }
+.lg-abas button[aria-selected="true"] { background: #fff; color: var(--blue); box-shadow: 0 1px 4px rgba(15,23,42,.12); }
+
+.lg-olho { color: var(--mute); display: grid; place-items: center; }
+.lg-olho[aria-pressed="true"] { color: var(--blue); }
+
+/* Força da senha */
+.lg-forca { display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 6px; align-items: center; min-height: 16px; }
+.lg-forca span { height: 4px; border-radius: 4px; background: var(--line); transition: background .2s; }
+.lg-forca small { font-size: 12px; color: var(--mute); min-width: 64px; text-align: right; }
+.lg-forca[data-nivel="1"] span:nth-child(-n+1) { background: var(--red); }
+.lg-forca[data-nivel="2"] span:nth-child(-n+2) { background: var(--amber); }
+.lg-forca[data-nivel="3"] span:nth-child(-n+3) { background: var(--green); }
+
+.lg .err:empty { min-height: 0; }
+.lg .err a { color: var(--blue); font-weight: 700; }
+.lg-troca { margin: 8px 0 0; }

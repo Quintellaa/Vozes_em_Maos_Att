@@ -1,4 +1,20 @@
-Coloque aqui o arquivo libras_svm.joblib gerado por tools/train_and_export.py.
+Aqui fica o modelo de reconhecimento: libras_pose_hands.joblib
+(gerado por tools/train_and_export.py — Random Forest, 20 sinais do MINDS-Libras,
+características "pose-hands-v1").
+
+O caminho é configurado em MODEL_PATH no .env (padrão: models/libras_pose_hands.joblib).
 
 Sem ele, a API sobe normalmente e só a rota /recognition responde 503 —
 login, histórico e o resto do app continuam funcionando.
+
+IMPORTANTE: instale a MESMA versão do scikit-learn usada no treino
+(o modelo atual foi treinado com scikit-learn 1.9.1). Versão diferente pode
+falhar ao carregar ou prever errado.
+
+---
+Modelos nesta pasta:
+  libras_grupo.joblib           modelo atual da equipe (oi, sim, não), características "pose-hands-v3".
+  libras_grupo_antigo_v2.joblib o anterior (v2), guardado só por segurança. Pode apagar.
+  libras_pose_hands.joblib      20 sinais do MINDS-Libras ("pose-hands-v1"), continua funcionando.
+Cada modelo guarda a versão das características com que foi treinado e a API usa
+a versão certa pra cada um. Modelo novo = rodar tools/train_and_export.py.

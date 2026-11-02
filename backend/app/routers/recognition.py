@@ -19,6 +19,7 @@ from app.models import User
 router = APIRouter(prefix="/recognition", tags=["recognition"])
 
 MAX_FRAMES = 600  # ~20s a 30fps; evita payloads absurdos
+TTA_TRIMS = ((0.12, 0.0), (0.0, 0.12), (0.1, 0.1))  # (fração cortada do começo, do fim)
 
 
 class Landmark(BaseModel):
@@ -47,9 +48,21 @@ class PredictRequest(BaseModel):
     frames: list[Frame] = Field(min_length=MIN_DETECTED_FRAMES, max_length=MAX_FRAMES)
 
 
+class Alternative(BaseModel):
+    gloss: str
+    confidence: float
+    word: str | None = None  # palavra em português ("água"), quando o modelo traz
+
+
+
+
 class PredictResponse(BaseModel):
     gloss: str | None  # None quando a confiança fica abaixo do mínimo
     confidence: float
+    word: str | None = None  # palavra pra exibir/falar; vem do modelo (ver tools/)
+    # Os 3 sinais mais prováveis, do maior pro menor. Serve pra depurar ("ele
+    # confundiu com quê?") e pra mostrar palpites quando a confiança é baixa.
+    alternatives: list[Alternative] = []
 
 
 @functools.lru_cache(maxsize=1)
@@ -75,6 +88,36 @@ def load_model_bundle():
             f"Treine de novo com o código atual."
         )
     return bundle
+
+
+def _trim(frames, start_share, end_share):
+    """Tira uma fração do começo e do fim dos quadros COM mão (o recorte do sinal
+    nunca é perfeito: pode sobrar um pedaço da mão subindo ou descendo)."""
+    detected = [i for i, f in enumerate(frames) if f["hands"]["left"] or f["hands"]["right"]]
+    if len(detected) < 3 * MIN_DETECTED_FRAMES:
+        return None
+    a = detected[0] + int(len(detected) * start_share)
+    b = detected[-1] - int(len(detected) * end_share)
+    return frames[a:b + 1]
+
+
+def predict_probabilities(model, frames, feature_version, features):
+    """Probabilidade de cada sinal.
+
+    Pra modelos da v3 em diante, em vez de olhar o recorte uma vez só, olhamos
+    também com um pouco do começo e/ou do fim cortado e fazemos a MÉDIA. Se o
+    recorte pegou um pedaço a mais ou a menos, uma das visões costuma acertar,
+    e a média não se deixa levar por uma visão ruim. Modelos antigos (MINDS)
+    continuam com a previsão simples, igual ao que foram treinados.
+    """
+    probs = [model.predict_proba(features.reshape(1, -1))[0]]
+    if feature_version == "pose-hands-v3":
+        for start, end in TTA_TRIMS:
+            trimmed = _trim(frames, start, end)
+            extra = None if trimmed is None else clip_to_features(trimmed, feature_version)
+            if extra is not None:
+                probs.append(model.predict_proba(extra.reshape(1, -1))[0])
+    return np.mean(probs, axis=0)
 
 
 @router.post("/predict", response_model=PredictResponse)
@@ -111,11 +154,26 @@ def predict(
         )
 
     model = bundle["model"]
-    probabilities = model.predict_proba(features.reshape(1, -1))[0]
-    best = int(np.argmax(probabilities))
+    words = bundle.get("words", {})  # modelos antigos (MINDS) não têm esse mapa
+    probabilities = predict_probabilities(model, frames, bundle["feature_version"], features)
+    ranking = np.argsort(probabilities)[::-1]  # índices do mais provável pro menos
+    best = int(ranking[0])
     confidence = float(probabilities[best])
     gloss = str(model.classes_[best]) if confidence >= settings.min_confidence else None
-    return PredictResponse(gloss=gloss, confidence=confidence)
+    alternatives = [
+        Alternative(
+            gloss=str(model.classes_[i]),
+            confidence=float(probabilities[i]),
+            word=words.get(str(model.classes_[i])),
+        )
+        for i in ranking[:3]
+    ]
+    return PredictResponse(
+        gloss=gloss,
+        confidence=confidence,
+        word=words.get(gloss) if gloss else None,
+        alternatives=alternatives,
+    )
 
 
 @router.get("/info")
@@ -127,7 +185,9 @@ def info(current_user: User = Depends(get_current_user)):
         return {"available": False, "detail": str(err)}
     return {
         "available": True,
-        "classes": bundle["classes"],
+        "classes": [str(c) for c in bundle["classes"]],
+        "words": bundle.get("words", {}),
+        "accuracy_new_person": bundle.get("loso_accuracy"),  # medida no treino (ver tools/)
         "feature_version": bundle["feature_version"],
         "current_feature_version": FEATURE_VERSION,
         "n_training_clips": bundle.get("n_training_clips"),

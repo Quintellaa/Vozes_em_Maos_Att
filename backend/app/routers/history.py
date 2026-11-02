@@ -27,7 +27,13 @@ def list_history(
         query = query.filter(TranslationHistory.favorite == favorite)
     if search:
         query = query.filter(TranslationHistory.text.ilike(f"%{search}%"))
-    return query.order_by(TranslationHistory.created_at.desc()).limit(100).all()
+    # id desc como desempate: created_at tem precisão de segundos no SQLite, então
+    # duas traduções no mesmo segundo vinham em ordem aleatória.
+    return (
+        query.order_by(TranslationHistory.created_at.desc(), TranslationHistory.id.desc())
+        .limit(100)
+        .all()
+    )
 
 
 @router.post("", response_model=HistoryOut, status_code=status.HTTP_201_CREATED)

@@ -12,9 +12,17 @@
    não pra conversa fluida. Melhorar isso é um problema em aberto do projeto.
 */
 const SEGMENT_END_SILENCE_MS = 700;   // mão fora do quadro por esse tempo = fim do sinal
-const MIN_SEGMENT_DETECTED = 8;       // frames com mão mínimos pra valer a pena enviar
+const MIN_SEGMENT_DETECTED = 6;       // frames com mão mínimos pra valer a pena enviar (a 20fps = 0,3s).
+                                      // Era 8: sinais rápidos ou de mão difícil de detectar eram
+                                      // descartados em silêncio.
+const MIN_SEGMENT_HINT = 3;           // com menos que isso, foi só a mão passando: não avisa nada
 const MAX_SEGMENT_FRAMES = 450;       // ~15s a 30fps: força o envio e evita payload gigante
 const COORD_DECIMALS = 4;             // arredondar encolhe o JSON sem afetar o modelo
+const DETECT_FPS = 20;                // quadros analisados por segundo. Rodar o MediaPipe em
+                                      // TODO quadro (até 60/s) travava notebooks; o modelo
+                                      // reamostra o sinal pra 32 quadros de qualquer jeito.
+const MIN_SHOULDER_RATIO = 0.6;       // ombros visíveis em menos que isso do sinal = avisamos pra se afastar
+const MAX_SHOULDER_Y_USE = 0.85;      // ombros abaixo disso na imagem = perto demais (igual à gravação)
 
 // Ligações entre os 21 pontos da mão, pra desenhar o esqueleto (padrão MediaPipe).
 const HAND_BONES = [
@@ -34,14 +42,27 @@ const Recognizer = {
   _lastHandAt: 0,
   _requestInFlight: false,
 
-  async start(videoEl, { onPhrase, onError, onStatus, overlayEl } = {}) {
+  /* callbacks:
+       onPhrase(gloss, confidence, alternatives, word) — sinal reconhecido pela API
+       onStatus(msg) / onError(msg)                  — mensagens pra tela
+       onFrame(detection) — OPCIONAL. Chamado a cada quadro analisado, com
+                            { hands, pose } — a tela de gravação usa pra checar
+                            o enquadramento ao vivo.
+       onSegment(frames)  — OPCIONAL. Se passado, o sinal capturado vai pra ele
+                            em vez de ir pra API. É o que a tela de gravação usa:
+                            assim o treino recorta os sinais EXATAMENTE como o
+                            reconhecimento recorta na hora de usar. */
+  async start(videoEl, { onPhrase, onError, onStatus, onSegment, onFrame, overlayEl } = {}) {
     if (!navigator.mediaDevices) {
       onError?.('Câmera não suportada neste navegador.');
       return;
     }
 
     try {
-      this._stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      // 640x480 basta pro MediaPipe e é bem mais leve que o 1280x720 padrão de muitas webcams.
+      this._stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+      });
       videoEl.srcObject = this._stream;
       await videoEl.play();
     } catch (err) {
@@ -65,7 +86,7 @@ const Recognizer = {
     this._stopped = false;
     this._buffer = [];
     this._lastHandAt = 0;
-    this._runLoop(videoEl, { onPhrase, onError, onStatus });
+    this._runLoop(videoEl, { onPhrase, onError, onStatus, onSegment, onFrame });
   },
 
   stop() {
@@ -76,12 +97,18 @@ const Recognizer = {
   },
 
   _runLoop(videoEl, callbacks) {
+    let lastDetectAt = 0;
     const tick = () => {
       if (this._stopped) return;
 
-      if (videoEl.readyState >= 2) {
+      const now = performance.now();
+      if (videoEl.readyState >= 2 && now - lastDetectAt >= 1000 / DETECT_FPS) {
+        lastDetectAt = now;
+        // Proporção da imagem (largura/altura): celular em pé ≈ 0,75; webcam ≈ 1,33.
+        if (videoEl.videoWidth && videoEl.videoHeight) this._aspect = videoEl.videoWidth / videoEl.videoHeight;
         const detection = HandTracking.detect(videoEl, performance.now());
         this._drawOverlay(videoEl, detection);
+        callbacks.onFrame?.(detection);
         this._collect(detection, callbacks);
       }
 
@@ -90,10 +117,18 @@ const Recognizer = {
     tick();
   },
 
-  _collect({ hands, pose }, callbacks) {
-    const now = performance.now();
+  // `now` (ms): na câmera é o relógio; na importação de vídeo é o tempo DO VÍDEO,
+  // senão a pausa de fim de sinal seria medida no tempo que o detector demorou.
+  _collect({ hands, pose }, callbacks, now = performance.now()) {
+    // O MediaPipe dá x como fração da LARGURA e y como fração da ALTURA. Numa
+    // imagem que não é quadrada, isso distorce as distâncias — e o mesmo sinal
+    // vira números diferentes no celular em pé e na webcam deitada. Multiplicar
+    // x pela proporção (largura/altura) põe x e y na mesma escala, então os
+    // pontos ficam iguais em qualquer câmera ou orientação. (Os pontos vão
+    // pra API e pras gravações já corrigidos: treino e uso sempre iguais.)
+    const aspect = this._aspect || 1;
     const round = points => points && points.map(p => ({
-      x: +p.x.toFixed(COORD_DECIMALS),
+      x: +(p.x * aspect).toFixed(COORD_DECIMALS),
       y: +p.y.toFixed(COORD_DECIMALS),
       z: +p.z.toFixed(COORD_DECIMALS)
     }));
@@ -120,9 +155,33 @@ const Recognizer = {
     this._buffer = [];
     this._lastHandAt = 0;
 
-    if (detectedCount >= MIN_SEGMENT_DETECTED) {
-      this._predict(segment, callbacks);
+    if (detectedCount < MIN_SEGMENT_DETECTED) {
+      // Antes isso sumia sem nenhuma mensagem e parecia que "o app não reconheceu".
+      if (detectedCount >= MIN_SEGMENT_HINT) {
+        callbacks.onStatus?.('Vi sua mão por pouco tempo. Faça o sinal um pouco mais devagar e com a mão bem visível.');
+      }
+      return;
     }
+
+    // O modelo mede tudo em relação aos OMBROS. Se eles não aparecem, o sinal
+    // chega "cego" pro modelo e ele chuta. Melhor avisar do que errar calado.
+    // (o MediaPipe estima os ombros mesmo fora do quadro; por isso conferimos
+    // se as coordenadas, que vão de 0 a 1, estão DENTRO da imagem)
+    const inFrame = p => p && p.x > 0 && p.x < aspect && p.y > 0 && p.y < 1; // x vai de 0 até a proporção
+    const withShoulders = segment.filter(f => f.pose && inFrame(f.pose[11]) && inFrame(f.pose[12])).length;
+    // Ombros colados no rodapé = pessoa perto demais: as mãos saem do quadro
+    // durante o sinal. Mesma regra da tela de gravação (treino e uso iguais).
+    const withPose = segment.filter(f => f.pose);
+    const shoulderY = withPose.length
+      ? withPose.reduce((sum, f) => sum + (f.pose[11].y + f.pose[12].y) / 2, 0) / withPose.length
+      : 1;
+    if (withShoulders / segment.length < MIN_SHOULDER_RATIO || shoulderY > MAX_SHOULDER_Y_USE) {
+      callbacks.onStatus?.('Afaste-se: ombros e mãos precisam aparecer.');
+      return;
+    }
+
+    if (callbacks.onSegment) callbacks.onSegment(segment);
+    else this._predict(segment, callbacks);
   },
 
   async _predict(frames, { onPhrase, onError, onStatus }) {
@@ -135,9 +194,12 @@ const Recognizer = {
     try {
       const result = await Api.predictSign(frames);
       if (result.gloss) {
-        onPhrase?.(result.gloss, result.confidence);
+        onPhrase?.(result.gloss, result.confidence, result.alternatives, result.word || glossToWord(result.gloss));
       } else {
-        onStatus?.('Não reconheci esse sinal. Tente de novo.');
+        // Mostrar os palpites ajuda a entender o erro (e a ajustar o sinal).
+        const guesses = (result.alternatives || [])
+          .map(a => `${a.word || glossToWord(a.gloss)} ${Math.round(a.confidence * 100)}%`).join(', ');
+        onStatus?.(guesses ? `Não tive certeza. Palpites: ${guesses}` : 'Não reconheci esse sinal. Tente de novo.');
       }
     } catch (err) {
       if (err.status === 503) {

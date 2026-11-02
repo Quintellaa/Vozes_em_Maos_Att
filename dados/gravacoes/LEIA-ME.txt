@@ -1,0 +1,4 @@
+Coloque aqui os arquivos .json gerados pela tela "Gravar sinais" (gravar.html).
+Pode criar subpastas (ex.: uma por pessoa) — o script de treino procura em todas.
+
+Depois rode o treino (ver tools/README.md).

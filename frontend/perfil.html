@@ -1,14 +1,188 @@
 <!DOCTYPE html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#2563eb"><title>Sinaliza — Perfil</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"></head>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#2563eb"><link rel="manifest" href="manifest.json"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Vozes em Mãos"><title>Vozes em Mãos — Perfil</title><link rel="icon" type="image/png" href="img/icone-192.png"><link rel="apple-touch-icon" href="img/icone-apple.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"><link rel="stylesheet" href="css/perfil.css"></head>
 <body data-page="perfil" data-auth>
-<div class="app"><div class="phead"><a class="back" href="tradutor.html" aria-label="Voltar"><i data-i="back"></i></a><button class="back" data-toast="Edição de perfil em breve" aria-label="Editar"><i data-i="edit"></i></button></div>
-<div class="pad"><div class="pcard"><div class="ava" data-ini></div><h2 id="nm">Gabriel Silva</h2><p class="mute sm" id="hd">Tradutor Iniciante • @gabriel_s</p>
-<div class="stats"><div><b>128</b><span>TRADUÇÕES</span></div><div><b>12</b><span>AULAS</span></div><div><b>8</b><span>SELOS</span></div></div></div>
-<div class="sec"><span>MINHAS COMUNIDADES</span><a class="link" href="#" data-toast="Comunidade em breve">Ver todas</a></div>
-<div class="com"><button data-toast="Comunidade em breve"><span class="ic-b"><i data-i="cap"></i></span>Libras na Facu<small>2.4k membros</small></button><button data-toast="Comunidade em breve"><span class="ic-b"><i data-i="building"></i></span>Saúde Inclusiva<small>850 membros</small></button></div>
-<div class="sec"><span>CONFIGURAÇÕES</span></div>
-<button class="set" data-toast="Em breve"><span class="ic-b"><i data-i="user"></i></span><span>Dados da Conta<small>E-mail, senha, segurança</small></span><i data-i="chev"></i></button>
-<button class="set" data-toast="Em breve"><span class="ic-b"><i data-i="bell"></i></span><span>Notificações<small>Som, alertas, lembretes</small></span><i data-i="chev"></i></button>
-<button class="set" data-toast="Em breve"><span class="ic-b"><i data-i="access"></i></span><span>Acessibilidade<small>Contraste, voz, legendas</small></span><i data-i="chev"></i></button>
-<button class="exit" id="exit"><i data-i="logout"></i>Sair da Conta</button></div><nav class="tabs" id="nav"></nav></div><div id="toast" role="status"></div><script src="js/dom.js"></script><script src="js/icons.js"></script><script src="js/storage.js"></script><script src="js/api.js"></script><script src="js/session.js"></script><script src="js/history.js"></script><script src="js/nav.js"></script><script src="js/recognizer.js"></script><script src="js/avatar.js"></script><script src="js/pages.js"></script><script src="js/app.js"></script></body></html>
+<div class="app">
+  <!-- Cabeçalho e conteúdo rolam juntos: assim o cartão pode subir sobre o azul sem ser cortado -->
+  <div class="pf-scroll">
+    <header class="pf-hero">
+      <a class="pf-round" href="tradutor.html" aria-label="Voltar"><i data-i="back"></i></a>
+      <button class="pf-round" id="btnEditar" type="button" aria-label="Editar perfil"><i data-i="edit"></i></button>
+    </header>
+
+    <div class="pf-body">
+      <section class="pf-card">
+        <div class="pf-ava-wrap">
+          <button class="pf-ava" id="avaBtn" type="button" aria-label="Adicionar foto de perfil">
+            <img id="avaImg" alt="" hidden>
+            <span class="pf-ini" id="avaIni"></span>
+          </button>
+          <button class="pf-cam" id="camBtn" type="button" aria-label="Escolher foto"><i data-i="camera"></i></button>
+        </div>
+        <h2 id="nm">&nbsp;</h2>
+        <p class="pf-handle" id="hd">&nbsp;</p>
+        <p class="pf-bio" id="bio" hidden></p>
+        <div class="stats">
+          <div><b id="stTrad">0</b><span>TRADUÇÕES</span></div>
+          <div><b id="stAulas">0</b><span>AULAS</span></div>
+          <div><b id="stSelos">0</b><span>SELOS</span></div>
+        </div>
+      </section>
+
+      <div class="sec"><span>MINHAS COMUNIDADES</span><button class="link pf-link" id="verTodas" type="button">Ver todas</button></div>
+      <div class="pf-com" id="comLista"></div>
+
+      <div class="sec"><span>CONFIGURAÇÕES</span></div>
+      <button class="set" type="button" data-abrir="sheetConta"><span class="ic-b"><i data-i="user"></i></span><span>Dados da Conta<small>E-mail, senha, segurança</small></span><i data-i="chev"></i></button>
+      <button class="set" type="button" data-abrir="sheetNotif"><span class="ic-b"><i data-i="bell"></i></span><span>Notificações<small>Som, alertas, lembretes</small></span><i data-i="chev"></i></button>
+      <button class="set" type="button" data-abrir="sheetAcess"><span class="ic-b"><i data-i="access"></i></span><span>Acessibilidade<small>Contraste, texto, voz</small></span><i data-i="chev"></i></button>
+      <button class="exit" id="exit" type="button"><i data-i="logout"></i>Sair da Conta</button>
+    </div>
+  </div>
+  <nav class="tabs" id="nav"></nav>
+</div>
+
+<!-- ============ Editar perfil ============ -->
+<div class="pf-sheet" id="sheetEditar" hidden>
+  <div class="pf-backdrop" data-fechar></div>
+  <form class="pf-panel" id="formEditar" novalidate role="dialog" aria-modal="true" aria-labelledby="tEditar">
+    <div class="pf-grab"></div>
+    <div class="pf-panel-head">
+      <button type="button" class="pf-txtbtn" data-fechar>Cancelar</button>
+      <h3 id="tEditar">Editar perfil</h3>
+      <button type="submit" class="pf-txtbtn pf-strong" id="btnSalvarPerfil">Salvar</button>
+    </div>
+    <div class="pf-foto-row">
+      <div class="pf-ava pf-ava-sm"><img id="prevImg" alt="" hidden><span class="pf-ini" id="prevIni"></span></div>
+      <div class="pf-foto-acoes">
+        <button type="button" class="pf-btn" id="btnEscolherFoto">Escolher foto</button>
+        <button type="button" class="pf-btn pf-btn-ghost" id="btnRemoverFoto">Remover</button>
+      </div>
+    </div>
+    <label class="pf-field">
+      <span>Nome</span>
+      <input id="inNome" maxlength="40" autocomplete="name" required>
+      <em class="pf-err" id="errNome"></em>
+    </label>
+    <label class="pf-field">
+      <span>Nome de usuário</span>
+      <div class="pf-at"><b>@</b><input id="inUser" maxlength="20" autocapitalize="off" autocomplete="username" spellcheck="false" required></div>
+      <em class="pf-err" id="errUser"></em>
+    </label>
+    <label class="pf-field">
+      <span>Sobre você <small id="bioCount">0/120</small></span>
+      <textarea id="inBio" maxlength="120" rows="3" placeholder="Ex.: Estudante de Pedagogia aprendendo Libras"></textarea>
+    </label>
+  </form>
+</div>
+
+<!-- ============ Todas as comunidades ============ -->
+<div class="pf-sheet" id="sheetCom" hidden>
+  <div class="pf-backdrop" data-fechar></div>
+  <div class="pf-panel" role="dialog" aria-modal="true" aria-labelledby="tCom">
+    <div class="pf-grab"></div>
+    <div class="pf-panel-head"><span></span><h3 id="tCom">Minhas comunidades</h3><button type="button" class="pf-txtbtn" data-fechar>Fechar</button></div>
+    <ul class="pf-com-todas" id="comTodas"></ul>
+  </div>
+</div>
+
+<!-- ============ Dados da Conta ============ -->
+<div class="pf-sheet" id="sheetConta" hidden>
+  <div class="pf-backdrop" data-fechar></div>
+  <div class="pf-panel" role="dialog" aria-modal="true" aria-labelledby="tConta">
+    <div class="pf-grab"></div>
+    <div class="pf-panel-head"><span></span><h3 id="tConta">Dados da Conta</h3><button type="button" class="pf-txtbtn" data-fechar>Fechar</button></div>
+
+    <h4 class="pf-grupo">Conta</h4>
+    <div class="pf-lista">
+      <div class="pf-linha"><span>Nome</span><b id="contaNome"></b></div>
+      <div class="pf-linha"><span>Usuário</span><b id="contaUser"></b></div>
+      <div class="pf-linha"><span>E-mail</span><b id="contaEmail"></b></div>
+      <div class="pf-linha"><span>Forma de entrar</span><b id="contaProvider"></b></div>
+    </div>
+    <button type="button" class="pf-btn pf-btn-sec pf-full" id="contaEditar">Editar nome e usuário</button>
+
+    <h4 class="pf-grupo">Senha</h4>
+    <p class="pf-nota" id="senhaSocial" hidden></p>
+    <form id="formSenha" novalidate>
+      <label class="pf-field"><span>Senha atual</span><input type="password" id="inSenhaAtual" autocomplete="current-password" required></label>
+      <label class="pf-field"><span>Nova senha</span><input type="password" id="inSenhaNova" autocomplete="new-password" minlength="6" required></label>
+      <label class="pf-field"><span>Confirmar nova senha</span><input type="password" id="inSenhaConf" autocomplete="new-password" minlength="6" required></label>
+      <label class="pf-check"><input type="checkbox" id="mostrarSenhas"> Mostrar senhas</label>
+      <em class="pf-err" id="errSenha"></em>
+      <button type="submit" class="pf-btn pf-full" id="btnSenha">Alterar senha</button>
+    </form>
+
+    <h4 class="pf-grupo">Segurança</h4>
+    <div class="pf-lista">
+      <button type="button" class="pf-linha pf-linha-btn" id="limparAparelho"><span>Apagar dados salvos neste aparelho<small>Bio e preferências</small></span></button>
+      <button type="button" class="pf-linha pf-linha-btn pf-perigo" id="contaSair"><span>Sair da conta neste aparelho</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Notificações ============ -->
+<div class="pf-sheet" id="sheetNotif" hidden>
+  <div class="pf-backdrop" data-fechar></div>
+  <div class="pf-panel" role="dialog" aria-modal="true" aria-labelledby="tNotif">
+    <div class="pf-grab"></div>
+    <div class="pf-panel-head"><span></span><h3 id="tNotif">Notificações</h3><button type="button" class="pf-txtbtn" data-fechar>Fechar</button></div>
+
+    <div class="pf-status" id="notifStatus">
+      <div><b id="notifStatusTxt">Notificações do navegador</b><small id="notifStatusSub"></small></div>
+      <button type="button" class="pf-btn" id="notifPermitir">Permitir</button>
+    </div>
+
+    <h4 class="pf-grupo">Ao reconhecer um sinal</h4>
+    <div class="pf-lista">
+      <label class="pf-toggle"><span><b>Som de aviso</b><small>Toca um bip curto no Tradutor</small></span><input type="checkbox" role="switch" data-pref="somSinal"><i></i></label>
+      <label class="pf-toggle"><span><b>Vibrar</b><small>No celular, vibra rapidamente</small></span><input type="checkbox" role="switch" data-pref="vibrarSinal"><i></i></label>
+    </div>
+    <button type="button" class="pf-btn pf-btn-sec pf-full" id="testarAviso">Testar som e vibração</button>
+
+    <h4 class="pf-grupo">Lembretes</h4>
+    <div class="pf-lista">
+      <label class="pf-toggle"><span><b>Lembrete diário para praticar</b><small>Uma notificação por dia no horário escolhido</small></span><input type="checkbox" role="switch" data-pref="lembrete" id="tgLembrete"><i></i></label>
+      <label class="pf-linha"><span>Horário</span><input type="time" id="inLembreteHora" class="pf-time"></label>
+    </div>
+    <p class="pf-nota">O lembrete aparece enquanto o Vozes em Mãos estiver aberto em alguma aba do navegador.</p>
+  </div>
+</div>
+
+<!-- ============ Acessibilidade ============ -->
+<div class="pf-sheet" id="sheetAcess" hidden>
+  <div class="pf-backdrop" data-fechar></div>
+  <div class="pf-panel" role="dialog" aria-modal="true" aria-labelledby="tAcess">
+    <div class="pf-grab"></div>
+    <div class="pf-panel-head"><span></span><h3 id="tAcess">Acessibilidade</h3><button type="button" class="pf-txtbtn" data-fechar>Fechar</button></div>
+
+    <h4 class="pf-grupo">Visual</h4>
+    <div class="pf-lista">
+      <label class="pf-toggle"><span><b>Alto contraste</b><small>Textos e bordas mais fortes</small></span><input type="checkbox" role="switch" data-pref="altoContraste"><i></i></label>
+      <label class="pf-toggle"><span><b>Reduzir animações</b><small>Menos movimento na tela</small></span><input type="checkbox" role="switch" data-pref="reduzirAnimacoes"><i></i></label>
+    </div>
+    <p class="pf-rotulo" id="lblTexto">Tamanho do texto</p>
+    <div class="pf-seg" role="radiogroup" aria-labelledby="lblTexto" data-pref-seg="tamanhoTexto">
+      <button type="button" role="radio" data-v="normal">Normal</button>
+      <button type="button" role="radio" data-v="grande">Grande</button>
+      <button type="button" role="radio" data-v="maior">Maior</button>
+    </div>
+
+    <h4 class="pf-grupo">Voz</h4>
+    <div class="pf-lista">
+      <label class="pf-toggle"><span><b>Falar sinais reconhecidos</b><small>Lê em voz alta a palavra sinalizada no Tradutor</small></span><input type="checkbox" role="switch" data-pref="falarSinais"><i></i></label>
+    </div>
+    <p class="pf-rotulo" id="lblVoz">Velocidade da voz</p>
+    <div class="pf-seg" role="radiogroup" aria-labelledby="lblVoz" data-pref-seg="velocidadeVoz">
+      <button type="button" role="radio" data-v="0.8">Devagar</button>
+      <button type="button" role="radio" data-v="1">Normal</button>
+      <button type="button" role="radio" data-v="1.25">Rápida</button>
+    </div>
+    <button type="button" class="pf-btn pf-btn-sec pf-full" id="ouvirVoz">Ouvir exemplo</button>
+  </div>
+</div>
+
+<input type="file" id="fotoInput" accept="image/*" hidden>
+<div id="toast" role="status"></div>
+<script src="js/dom.js"></script><script src="js/icons.js"></script><script src="js/storage.js"></script><script src="js/preferencias.js"></script><script src="js/api.js"></script><script src="js/session.js"></script><script src="js/history.js"></script><script src="js/speech.js"></script><script src="js/nav.js"></script><script src="js/comunidades.js"></script><script src="js/perfil.js"></script><script src="js/pages.js"></script><script src="js/app.js"></script>
+</body></html>

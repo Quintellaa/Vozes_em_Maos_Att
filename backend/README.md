@@ -1,20 +1,43 @@
 # Sinaliza API (backend — Fase 1)
 
-Backend em **FastAPI + PostgreSQL** que substitui o `localStorage` mockado do front-end
+Backend em **FastAPI + SQLite** (PostgreSQL opcional via Docker) que substitui o `localStorage` mockado do front-end
 (`session.js` e `history.js`) por autenticação e histórico persistidos de verdade.
 
-## Como rodar
+## Como rodar (local, com SQLite — o jeito mais simples)
 
 ```bash
-cp .env.example .env
-# gere um secret real e cole em JWT_SECRET_KEY:
-python3 -c "import secrets; print(secrets.token_hex(32))"
-
-docker compose up --build
+cd backend
+python -m venv .venv
+# Windows: .venv\Scripts\activate    |    Linux/Mac: source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env          # Windows: copy .env.example .env
+uvicorn app.main:app --reload
 ```
 
 A API sobe em `http://localhost:8000`. Documentação interativa (Swagger) em
-`http://localhost:8000/docs`.
+`http://localhost:8000/docs`. O banco é o arquivo `sinaliza.db`, criado sozinho.
+
+O front-end é estático: abra `frontend/index.html` com o Live Server do VS Code
+(porta 5500/5501, já liberadas no CORS do `.env.example`).
+
+## Como rodar (Docker, com PostgreSQL)
+
+No `.env`, troque `DATABASE_URL=postgresql://sinaliza:sinaliza@db:5432/sinaliza` e:
+
+```bash
+docker compose up --build
+```
+
+## Testes
+
+```bash
+cd backend
+pytest -q
+```
+
+16 testes cobrindo cadastro/login, histórico (inclusive que um usuário não enxerga
+o histórico de outro), a extração de características e a rota `/recognition`.
+Cada execução usa um banco temporário — não mexe no `sinaliza.db`.
 
 ## Estrutura
 
@@ -30,6 +53,11 @@ app/
   routers/
     auth.py       # registro, login, login social (mock), /me
     history.py    # CRUD do histórico de traduções
+    recognition.py  # Libras → texto: recebe landmarks, aplica o modelo
+  libras_features.py  # landmarks → vetor de características (igual ao do treino)
+models/
+  libras_pose_hands.joblib  # modelo treinado (20 sinais, MINDS-Libras)
+tests/              # pytest
 ```
 
 ## Endpoints
@@ -45,6 +73,8 @@ app/
 | PATCH  | `/history/{id}/favorite`     | sim | Alterna favorito |
 | DELETE | `/history/{id}`              | sim | Remove um registro |
 | DELETE | `/history`                   | sim | Limpa todo o histórico |
+| POST   | `/recognition/predict`       | sim | Frames de landmarks → sinal + confiança |
+| GET    | `/recognition/info`          | sim | Modelo disponível? Quais sinais conhece |
 
 Rotas autenticadas esperam `Authorization: Bearer <token>`, onde `<token>` é o
 `access_token` retornado por `/auth/register`, `/auth/login` ou `/auth/social`.

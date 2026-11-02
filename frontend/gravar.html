@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<!-- FERRAMENTA INTERNA da equipe: grava os dados de treino do reconhecimento.
+     Não tem link no app de propósito — o usuário final usa o modelo já treinado.
+     Acesse direto pelo endereço: .../frontend/gravar.html  (ver tools/README.md) -->
+<html lang="pt-BR"><head><meta name="robots" content="noindex"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#2563eb"><link rel="manifest" href="manifest.json"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Vozes em Mãos"><title>Vozes em Mãos — Gravar sinais (equipe)</title><link rel="icon" type="image/png" href="img/icone-192.png"><link rel="apple-touch-icon" href="img/icone-apple.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"></head>
+<body data-page="gravar">
+<div class="app" id="app"><header class="top"><a class="back" href="tradutor.html" aria-label="Voltar"><i data-i="back"></i></a><b>Gravar sinais — ferramenta da equipe</b></header>
+<main class="main rec">
+  <div class="rec-form">
+    <label class="rec-field"><small>SEU NOME</small><input id="signer" placeholder="ex.: joao" autocomplete="off"></label>
+    <label class="rec-field"><small>SINAL</small><select id="sign"></select></label>
+    <label class="rec-field rec-reps"><small>REPETIÇÕES</small><input id="reps" type="number" min="5" max="60"></label>
+  </div>
+
+  <details class="rec-ref" id="refBox">
+    <summary>Ver como se faz o sinal (avatar VLibras)</summary>
+    <div class="rec-ref-stage" id="refStage"></div>
+    <button type="button" class="btn out" id="refPlay">Mostrar o sinal</button>
+    <p class="sm mute">Referência do VLibras, pra todo mundo gravar o mesmo sinal do mesmo jeito. Em caso de dúvida, confirmem com alguém fluente em Libras.</p>
+  </details>
+
+  <section class="card rec-cam">
+    <video id="video" autoplay playsinline muted></video><canvas id="handOverlay" class="hand-overlay" hidden></canvas>
+    <div class="rec-count" id="count">0 / 20</div><div class="rec-framing" id="framing" hidden></div>
+    <div class="trans"><small>COMO GRAVAR</small><span id="status">Preencha seu nome e clique em "Iniciar câmera".</span></div>
+  </section>
+
+  <div class="rec-actions">
+    <button type="button" class="btn pri" id="startCam">Iniciar câmera</button>
+    <button type="button" class="btn out" id="undo" disabled>Desfazer última</button>
+    <button type="button" class="btn out" id="save" disabled>Salvar arquivo</button>
+  </div>
+
+  <details class="rec-import" id="importBox" open>
+    <summary>Importar vídeos gravados no celular</summary>
+    <ol>
+      <li>No celular: <b>um vídeo por sinal</b>, em pé (vertical), câmera <b>apoiada</b> na altura do rosto.</li>
+      <li>Cabeça em cima e <b>ombros mais ou menos no meio</b> da imagem.</li>
+      <li>Faça o sinal e <b>abaixe as mãos até sumirem da imagem</b>; espere 1 segundo; repita (~15 vezes).</li>
+      <li>Passe o vídeo pro PC, escolha acima o <b>sinal</b> e o <b>seu nome</b>, e clique em <b>Importar vídeo</b>.</li>
+    </ol>
+    <label class="btn pri rec-file">Importar vídeo
+      <input type="file" id="videoFiles" accept="video/*" multiple hidden></label>
+    <p class="sm mute" id="importStatus">O vídeo passa pelo mesmo detector do app: as repetições são recortadas e conferidas sozinhas. Deixe esta aba aberta e visível enquanto processa.</p>
+  </details>
+
+  <details class="rec-help" open><summary>Dicas pra uma boa gravação</summary>
+    <ul>
+      <li>Cabeça, <b>ombros</b> e mãos precisam aparecer. Sente um pouco longe da câmera.</li>
+      <li>Faça o sinal e depois <b>abaixe as mãos até sumirem da câmera</b>. Cada vez que elas somem, conta uma amostra.</li>
+      <li>Varie um pouco: velocidade, distância, posição no quadro. Isso deixa o modelo mais esperto.</li>
+      <li>Errou? Clique em "Desfazer última".</li>
+      <li>Ao chegar no total, o arquivo é salvo sozinho em Downloads. Mande os arquivos pro João.</li>
+    </ul>
+  </details>
+  <p class="sm mute" id="sessionSummary"></p>
+</main></div>
+<div id="toast" role="status"></div>
+<script src="js/dom.js"></script><script src="js/icons.js"></script><script src="js/storage.js"></script><script src="js/preferencias.js"></script><script src="js/api.js"></script><script src="js/session.js"></script><script src="js/history.js"></script><script src="js/nav.js"></script><script src="js/sign-dictionary.js"></script><script src="js/recognizer.js"></script><script src="js/hand-tracking.js"></script><script src="js/recording-config.js"></script><script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script><script src="js/vlibras.js"></script><script src="js/pages.js"></script><script src="js/gravar.js"></script><script src="js/app.js"></script></body></html>
