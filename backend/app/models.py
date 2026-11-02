@@ -1,7 +1,7 @@
 """Modelos de banco de dados (SQLAlchemy ORM)."""
 import enum
 
-from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, Enum, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -32,7 +32,8 @@ class User(Base):
     # a data entra na URL da imagem para o navegador não mostrar a foto antiga do cache.
     avatar = Column(LargeBinary, nullable=True)
     avatar_type = Column(String(20), nullable=True)
-    avatar_updated_at = Column(Integer, nullable=True)
+    # Em milissegundos (13 dígitos): não cabe em Integer no PostgreSQL, por isso BigInteger.
+    avatar_updated_at = Column(BigInteger, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     history = relationship("TranslationHistory", back_populates="user", cascade="all, delete-orphan")

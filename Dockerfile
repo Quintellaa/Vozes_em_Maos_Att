@@ -7,7 +7,7 @@ WORKDIR /code
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 # Na nuvem o banco é PostgreSQL (o SQLite seria apagado a cada reinício do servidor).
-RUN pip install --no-cache-dir psycopg2-binary==2.9.10
+RUN pip install --no-cache-dir "psycopg[binary]>=3.2"
 
 COPY backend/app ./app
 COPY backend/models ./models

@@ -6,7 +6,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 # No Docker o banco é o PostgreSQL do docker-compose, então o driver entra aqui
 # (fora do requirements.txt pra não quebrar quem roda local com SQLite).
-RUN pip install --no-cache-dir psycopg2-binary==2.9.9
+RUN pip install --no-cache-dir "psycopg[binary]>=3.2"
 
 COPY app ./app
 # Sem esta linha o .joblib não entrava na imagem e /recognition respondia 503.
