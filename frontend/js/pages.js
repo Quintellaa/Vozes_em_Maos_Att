@@ -106,7 +106,8 @@ const pages = {
         } catch (ex) {
           err.textContent = ex.message;
           if (ex.status === 401) {
-            err.insertAdjacentHTML('beforeend', ' Ainda não tem conta? <a href="#criar" data-ir="criar">Crie agora</a>.');
+            // O celular às vezes preenche sozinho a senha de outra conta do mesmo site.
+            err.insertAdjacentHTML('beforeend', ' Toque no olho para conferir a senha: o celular pode ter preenchido a de outra conta. Ainda não tem conta? <a href="#criar" data-ir="criar">Crie agora</a>.');
             $('#pw').select();
           }
         }

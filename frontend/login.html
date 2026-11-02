@@ -16,10 +16,10 @@
     <p class="mute sm">Acesse sua conta para continuar suas traduções e estudos.</p>
 
     <label class="lbl" for="em">E-MAIL</label>
-    <div class="inp"><i data-i="mail"></i><input id="em" type="email" placeholder="seu@email.com" autocomplete="email" inputmode="email" required></div>
+    <div class="inp"><i data-i="mail"></i><input id="em" name="email" type="email" placeholder="seu@email.com" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" required></div>
 
     <div class="lbl"><label for="pw">SENHA</label><a class="link" href="#" id="esqueci">Esqueci a senha</a></div>
-    <div class="inp"><i data-i="lock"></i><input id="pw" type="password" placeholder="••••••••" autocomplete="current-password" required><button type="button" class="lg-olho" data-olho="pw" aria-label="Mostrar senha"><i data-i="eye"></i></button></div>
+    <div class="inp"><i data-i="lock"></i><input id="pw" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required><button type="button" class="lg-olho" data-olho="pw" aria-label="Mostrar senha"><i data-i="eye"></i></button></div>
 
     <p class="err" id="errEntrar" role="alert"></p>
     <button class="btn pri" type="submit" id="btnEntrar">Entrar</button>
@@ -35,14 +35,14 @@
     <div class="inp"><i data-i="user"></i><input id="cNome" type="text" placeholder="Como você quer ser chamado" autocomplete="name" maxlength="60" required></div>
 
     <label class="lbl" for="cEm">E-MAIL</label>
-    <div class="inp"><i data-i="mail"></i><input id="cEm" type="email" placeholder="seu@email.com" autocomplete="email" inputmode="email" required></div>
+    <div class="inp"><i data-i="mail"></i><input id="cEm" name="email" type="email" placeholder="seu@email.com" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" required></div>
 
     <label class="lbl" for="cPw">SENHA</label>
-    <div class="inp"><i data-i="lock"></i><input id="cPw" type="password" placeholder="Mínimo de 6 caracteres" autocomplete="new-password" minlength="6" required aria-describedby="forca"><button type="button" class="lg-olho" data-olho="cPw" aria-label="Mostrar senha"><i data-i="eye"></i></button></div>
+    <div class="inp"><i data-i="lock"></i><input id="cPw" name="new-password" type="password" placeholder="Mínimo de 6 caracteres" autocomplete="new-password" minlength="6" required aria-describedby="forca"><button type="button" class="lg-olho" data-olho="cPw" aria-label="Mostrar senha"><i data-i="eye"></i></button></div>
     <div class="lg-forca" id="forca" aria-live="polite"><span></span><span></span><span></span><small></small></div>
 
     <label class="lbl" for="cPw2">CONFIRMAR SENHA</label>
-    <div class="inp"><i data-i="lock"></i><input id="cPw2" type="password" placeholder="Repita a senha" autocomplete="new-password" required><button type="button" class="lg-olho" data-olho="cPw2" aria-label="Mostrar senha"><i data-i="eye"></i></button></div>
+    <div class="inp"><i data-i="lock"></i><input id="cPw2" name="confirm-password" type="password" placeholder="Repita a senha" autocomplete="new-password" required><button type="button" class="lg-olho" data-olho="cPw2" aria-label="Mostrar senha"><i data-i="eye"></i></button></div>
 
     <p class="err" id="errCriar" role="alert"></p>
     <button class="btn pri" type="submit" id="btnCriar">Criar conta</button>
