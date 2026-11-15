@@ -70,14 +70,14 @@ from app.routers import auth as auth_router  # noqa: E402
 def emails(monkeypatch):
     """Troca o envio real por uma lista: cada item é (para, nome, link)."""
     enviados = []
-    monkeypatch.setattr(auth_router, "send_password_reset", lambda to, name, link: enviados.append((to, name, link)))
+    monkeypatch.setattr(auth_router, "send_password_reset", lambda to, name, link, mascot_url: enviados.append((to, name, link, mascot_url)))
     auth_router._last_reset_email.clear()
     return enviados
 
 
 def _token_do_link(link: str) -> str:
-    assert "/redefinir-senha.html#token=" in link
-    return link.split("#token=", 1)[1]
+    assert "/redefinir-senha.html#c=" in link
+    return link.split("#c=", 1)[1]
 
 
 def test_esqueci_senha_envia_link_e_troca_senha(client, emails):
@@ -132,3 +132,40 @@ def test_token_de_redefinicao_nao_serve_para_entrar(client, emails):
 def test_token_invalido(client):
     r = client.post("/auth/reset-password", json={"token": "isso-nao-e-um-token", "new_password": "nova12345"})
     assert r.status_code == 400
+
+
+def test_link_de_redefinicao_e_curto(client, emails):
+    client.post("/auth/register", json={"name": "Jade", "email": "jade@teste.com", "password": "antiga123"})
+    client.post("/auth/forgot-password", json={"email": "jade@teste.com"})
+    to, name, link, mascot_url = emails[0]
+    assert len(_token_do_link(link)) == 16
+    assert len(link) < 80  # o JWT antigo deixava o link com ~280 caracteres
+    assert mascot_url.endswith("/img/mascote-email.png")
+
+
+def test_pedir_de_novo_invalida_o_link_anterior(client, emails):
+    client.post("/auth/register", json={"name": "Kim", "email": "kim@teste.com", "password": "antiga123"})
+    client.post("/auth/forgot-password", json={"email": "kim@teste.com"})
+    primeiro = _token_do_link(emails[0][2])
+    auth_router._last_reset_email.clear()  # pula a espera de 60 s
+    client.post("/auth/forgot-password", json={"email": "kim@teste.com"})
+    segundo = _token_do_link(emails[1][2])
+
+    assert client.post("/auth/reset-password", json={"token": primeiro, "new_password": "nova12345"}).status_code == 400
+    assert client.post("/auth/reset-password", json={"token": segundo, "new_password": "nova12345"}).status_code == 200
+
+
+def test_link_vencido_nao_funciona(client, emails):
+    from datetime import datetime, timedelta
+
+    from app.database import SessionLocal
+    from app.models import PasswordResetCode
+
+    client.post("/auth/register", json={"name": "Lia", "email": "lia@teste.com", "password": "antiga123"})
+    client.post("/auth/forgot-password", json={"email": "lia@teste.com"})
+    codigo = _token_do_link(emails[0][2])
+    with SessionLocal() as db:  # faz o código vencer
+        for entry in db.query(PasswordResetCode).all():
+            entry.expires_at = datetime.utcnow() - timedelta(minutes=1)
+        db.commit()
+    assert client.post("/auth/reset-password", json={"token": codigo, "new_password": "nova12345"}).status_code == 400

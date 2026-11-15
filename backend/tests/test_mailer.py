@@ -57,13 +57,13 @@ def test_gmail_script_monta_o_pedido_certo(pedidos, monkeypatch, capsys):
     monkeypatch.setattr(settings, "mailjet_api_key", "chave")  # mesmo com Mailjet configurada, o Gmail vem primeiro
     monkeypatch.setattr(settings, "mailjet_secret_key", "segredo")
 
-    mailer.send_password_reset("ana@teste.com", "Ana Souza", "https://app/redefinir-senha.html#token=abc")
+    mailer.send_password_reset("ana@teste.com", "Ana Souza", "https://app/redefinir-senha.html#c=abc", "https://app/img/mascote-email.png")
 
     assert len(pedidos) == 1
     assert pedidos[0].full_url == "https://script.google.com/macros/s/ABC/exec"
     corpo = json.loads(pedidos[0].data)
     assert corpo["secret"] == "meu-segredo" and corpo["to"] == "ana@teste.com"
-    assert "#token=abc" in corpo["text"] and "#token=abc" in corpo["html"]
+    assert "#c=abc" in corpo["text"] and "#c=abc" in corpo["html"]
     assert "[E-MAIL ENVIADO]" in capsys.readouterr().out
 
 
@@ -86,7 +86,7 @@ def test_mailjet_monta_o_pedido_certo(pedidos, monkeypatch, capsys):
     monkeypatch.setattr(settings, "mailjet_api_key", "chave")
     monkeypatch.setattr(settings, "mailjet_secret_key", "segredo")
 
-    mailer.send_password_reset("ana@teste.com", "Ana Souza", "https://app/redefinir-senha.html#token=abc")
+    mailer.send_password_reset("ana@teste.com", "Ana Souza", "https://app/redefinir-senha.html#c=abc", "https://app/img/mascote-email.png")
 
     assert len(pedidos) == 1
     req = pedidos[0]
@@ -95,7 +95,7 @@ def test_mailjet_monta_o_pedido_certo(pedidos, monkeypatch, capsys):
     msg = json.loads(req.data)["Messages"][0]
     assert msg["From"]["Email"] == "contato@vozes.com"
     assert msg["To"] == [{"Email": "ana@teste.com"}]
-    assert "#token=abc" in msg["TextPart"] and "#token=abc" in msg["HTMLPart"]
+    assert "#c=abc" in msg["TextPart"] and "#c=abc" in msg["HTMLPart"]
     assert "[E-MAIL ENVIADO]" in capsys.readouterr().out
 
 
@@ -108,9 +108,9 @@ def test_mailjet_tem_prioridade_sobre_brevo(pedidos, monkeypatch):
 
 
 def test_sem_configuracao_mostra_o_link_no_terminal(pedidos, capsys):
-    mailer.send_password_reset("ana@teste.com", "Ana", "https://app/redefinir-senha.html#token=abc")
+    mailer.send_password_reset("ana@teste.com", "Ana", "https://app/redefinir-senha.html#c=abc", "https://app/img/mascote-email.png")
     assert pedidos == []
-    assert "#token=abc" in capsys.readouterr().out
+    assert "#c=abc" in capsys.readouterr().out
 
 
 def test_erro_do_servico_aparece_no_log_sem_derrubar_o_app(monkeypatch, capsys):
@@ -126,3 +126,15 @@ def test_erro_do_servico_aparece_no_log_sem_derrubar_o_app(monkeypatch, capsys):
 
     saida = capsys.readouterr().out
     assert "[FALHA AO ENVIAR E-MAIL]" in saida and "HTTP 401" in saida and "sender not validated" in saida
+
+
+def test_email_tem_o_mascote_e_o_visual_do_app():
+    assunto, texto, html = mailer.password_reset_email("Ana Souza", "https://app/redefinir-senha.html#c=abc", "https://app/img/mascote-email.png")
+    assert 'src="https://app/img/mascote-email.png"' in html
+    assert "#2563eb" in html and "Criar nova senha" in html and "Esqueceu a senha, Ana?" in html
+    assert "#c=abc" in texto
+
+
+def test_email_escapa_o_nome():
+    _, _, html = mailer.password_reset_email("<b>Ana</b>", "https://app/x#c=abc", "https://app/m.png")
+    assert "<b>Ana</b>" not in html and "&lt;b&gt;Ana&lt;/b&gt;" in html

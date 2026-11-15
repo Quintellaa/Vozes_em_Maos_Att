@@ -98,7 +98,7 @@ class ForgotPassword(BaseModel):
 
 
 class ResetPassword(BaseModel):
-    token: str = Field(min_length=10, max_length=2000)
+    token: str = Field(min_length=8, max_length=200)  # código do link do e-mail
     new_password: str = Field(min_length=6, max_length=128)
 
 

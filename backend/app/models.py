@@ -39,6 +39,17 @@ class User(Base):
     history = relationship("TranslationHistory", back_populates="user", cascade="all, delete-orphan")
 
 
+
+class PasswordResetCode(Base):
+    """Código do link de "Esqueci a senha". Vale por pouco tempo e é apagado quando usado."""
+    __tablename__ = "password_reset_codes"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    code_hash = Column(String(64), unique=True, nullable=False, index=True)  # sha256 do código, nunca o código
+    expires_at = Column(DateTime, nullable=False)  # em UTC
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 class TranslationHistory(Base):
     __tablename__ = "translation_history"
 
