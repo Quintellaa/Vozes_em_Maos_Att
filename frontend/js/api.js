@@ -79,7 +79,14 @@ const Api = {
       auth: true
     }),
 
-  listHistory: (queryString = '') => apiRequest(`/history${queryString}`, { auth: true }),
+  // "Esqueci a senha": manda o link por e-mail / troca a senha com o token do link
+  forgotPassword: email =>
+    apiRequest('/auth/forgot-password', { method: 'POST', body: { email } }),
+
+  resetPassword: (token, newPassword) =>
+    apiRequest('/auth/reset-password', { method: 'POST', body: { token, new_password: newPassword } }),
+
+  listHistory:(queryString = '') => apiRequest(`/history${queryString}`, { auth: true }),
 
   createHistory: (type, text) =>
     apiRequest('/history', { method: 'POST', body: { type, text }, auth: true }),

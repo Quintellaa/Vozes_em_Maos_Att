@@ -38,18 +38,23 @@ const pages = {
     const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     const formEntrar = $('#fEntrar');
     const formCriar = $('#fCriar');
+    const formEsqueci = $('#fEsqueci');
 
-    // ---- Abas Entrar / Criar conta (login.html#criar abre direto no cadastro) ----
+    // ---- Abas Entrar / Criar conta, e a tela "Esqueci a senha" ----
+    // (login.html#criar abre direto no cadastro; login.html#esqueci, na recuperação de senha)
+    const TITULOS = { entrar: 'Entrar', criar: 'Criar conta', esqueci: 'Esqueci a senha' };
+    const PRIMEIRO_CAMPO = { entrar: '#em', criar: '#cNome', esqueci: '#eEm' };
     function mostrar(modo, focar = true) {
-      const criar = modo === 'criar';
-      formEntrar.hidden = criar;
-      formCriar.hidden = !criar;
-      $('#abaEntrar').setAttribute('aria-selected', String(!criar));
-      $('#abaCriar').setAttribute('aria-selected', String(criar));
-      document.title = criar ? 'Vozes em Mãos — Criar conta' : 'Vozes em Mãos — Entrar';
-      history.replaceState(null, '', criar ? '#criar' : '#entrar');
-      $('#errEntrar').textContent = $('#errCriar').textContent = '';
-      if (focar) setTimeout(() => (criar ? $('#cNome') : $('#em')).focus(), 0);
+      formEntrar.hidden = modo !== 'entrar';
+      formCriar.hidden = modo !== 'criar';
+      formEsqueci.hidden = modo !== 'esqueci';
+      $('.lg-abas').hidden = modo === 'esqueci';
+      $('#abaEntrar').setAttribute('aria-selected', String(modo === 'entrar'));
+      $('#abaCriar').setAttribute('aria-selected', String(modo === 'criar'));
+      document.title = 'Vozes em Mãos — ' + TITULOS[modo];
+      history.replaceState(null, '', '#' + modo);
+      $('#errEntrar').textContent = $('#errCriar').textContent = $('#errEsqueci').textContent = '';
+      if (focar) setTimeout(() => $(PRIMEIRO_CAMPO[modo]).focus(), 0);
     }
     $('#abaEntrar').onclick = () => mostrar('entrar');
     $('#abaCriar').onclick = () => mostrar('criar');
@@ -58,14 +63,16 @@ const pages = {
       if (!link) return;
       e.preventDefault();
       // leva o e-mail digitado de um formulário para o outro
-      if (link.dataset.ir === 'entrar' && $('#cEm').value) $('#em').value = $('#cEm').value;
-      if (link.dataset.ir === 'criar' && $('#em').value) $('#cEm').value = $('#em').value;
-      mostrar(link.dataset.ir);
+      const emailDigitado = [$('#em'), $('#cEm'), $('#eEm')].find(inp => !inp.closest('form').hidden && inp.value)?.value;
+      const destino = link.dataset.ir;
+      if (emailDigitado) $({ entrar: '#em', criar: '#cEm', esqueci: '#eEm' }[destino]).value = emailDigitado;
+      mostrar(destino);
     });
-    mostrar(location.hash === '#criar' ? 'criar' : 'entrar', false);
+    mostrar(TITULOS[location.hash.slice(1)] ? location.hash.slice(1) : 'entrar', false);
     // apaga a mensagem de erro assim que a pessoa volta a digitar
     formEntrar.addEventListener('input', () => { $('#errEntrar').textContent = ''; });
     formCriar.addEventListener('input', () => { $('#errCriar').textContent = ''; });
+    formEsqueci.addEventListener('input', () => { $('#errEsqueci').textContent = ''; $('#okEsqueci').hidden = true; });
 
     // ---- Mostrar/ocultar senha ----
     $$('[data-olho]').forEach(btn => {
@@ -78,17 +85,35 @@ const pages = {
       };
     });
 
-    $('#esqueci').onclick = e => {
-      e.preventDefault();
-      toast('Recuperar senha ainda não está disponível. Se esqueceu, crie uma nova conta ou fale com o suporte.');
-    };
-
     async function enviando(btn, texto, acao) {
       const original = btn.textContent;
       btn.disabled = true;
       btn.textContent = texto;
       try { await acao(); } finally { btn.disabled = false; btn.textContent = original; }
     }
+
+    // ---- Esqueci a senha: envia o link por e-mail ----
+    formEsqueci.onsubmit = async e => {
+      e.preventDefault();
+      const err = $('#errEsqueci');
+      const ok = $('#okEsqueci');
+      const email = $('#eEm').value.trim();
+      err.textContent = '';
+      ok.hidden = true;
+      if (!EMAIL_OK.test(email)) { err.textContent = 'Digite um e-mail válido, como nome@email.com.'; return $('#eEm').focus(); }
+
+      await enviando($('#btnEsqueci'), 'Enviando…', async () => {
+        try {
+          await Api.forgotPassword(email);
+          ok.textContent = `Pronto! Se ${email} tiver uma conta, você vai receber um e-mail com o link para criar uma nova senha. ` +
+            'Confira também a caixa de spam. O link vale por 30 minutos.';
+          ok.hidden = false;
+          $('#em').value = email;
+        } catch (ex) {
+          err.textContent = ex.message;
+        }
+      });
+    };
 
     // ---- Entrar ----
     formEntrar.onsubmit = async e => {
@@ -155,6 +180,53 @@ const pages = {
           }
         }
       });
+    };
+  },
+
+  // Página aberta pelo link do e-mail: redefinir-senha.html#token=...
+  redefinir() {
+    const token = new URLSearchParams(location.hash.slice(1)).get('token');
+    // Tira o token da barra de endereço (e do histórico do navegador) assim que lê.
+    history.replaceState(null, '', location.pathname);
+
+    const form = $('#fRedefinir');
+    const err = $('#errRedefinir');
+    if (!token) {
+      form.hidden = true;
+      $('#semToken').hidden = false;
+      return;
+    }
+
+    $$('[data-olho]').forEach(btn => {
+      btn.onclick = () => {
+        const inp = $('#' + btn.dataset.olho);
+        const ver = inp.type === 'password';
+        inp.type = ver ? 'text' : 'password';
+        btn.setAttribute('aria-pressed', String(ver));
+        btn.setAttribute('aria-label', ver ? 'Ocultar senha' : 'Mostrar senha');
+      };
+    });
+    form.addEventListener('input', () => { err.textContent = ''; });
+
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const senha = $('#rPw').value;
+      const conf = $('#rPw2').value;
+      err.textContent = '';
+      if (senha.length < 6) { err.textContent = 'A senha precisa ter ao menos 6 caracteres.'; return $('#rPw').focus(); }
+      if (senha !== conf) { err.textContent = 'As senhas não são iguais.'; return $('#rPw2').focus(); }
+
+      const btn = $('#btnRedefinir');
+      btn.disabled = true;
+      btn.textContent = 'Salvando…';
+      try {
+        finishLogin(await Api.resetPassword(token, senha)); // já entra no app com a senha nova
+      } catch (ex) {
+        err.textContent = ex.message;
+        if (ex.status === 400) err.insertAdjacentHTML('beforeend', ' <a href="login.html#esqueci">Pedir novo link</a>.');
+        btn.disabled = false;
+        btn.textContent = 'Salvar nova senha';
+      }
     };
   },
 

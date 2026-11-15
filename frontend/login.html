@@ -18,12 +18,26 @@
     <label class="lbl" for="em">E-MAIL</label>
     <div class="inp"><i data-i="mail"></i><input id="em" name="email" type="email" placeholder="seu@email.com" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" required></div>
 
-    <div class="lbl"><label for="pw">SENHA</label><a class="link" href="#" id="esqueci">Esqueci a senha</a></div>
+    <div class="lbl"><label for="pw">SENHA</label><a class="link" href="#esqueci" id="esqueci" data-ir="esqueci">Esqueci a senha</a></div>
     <div class="inp"><i data-i="lock"></i><input id="pw" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required><button type="button" class="lg-olho" data-olho="pw" aria-label="Mostrar senha"><i data-i="eye"></i></button></div>
 
     <p class="err" id="errEntrar" role="alert"></p>
     <button class="btn pri" type="submit" id="btnEntrar">Entrar</button>
     <p class="sm mute c lg-troca">Não tem uma conta? <a class="link" href="#criar" data-ir="criar">Crie agora</a></p>
+  </form>
+
+  <!-- ============ Esqueci a senha ============ -->
+  <form id="fEsqueci" aria-labelledby="tEsqueci" novalidate hidden>
+    <h2 id="tEsqueci">Esqueceu a senha?</h2>
+    <p class="mute sm">Digite o e-mail da sua conta. Vamos enviar um link para você criar uma senha nova.</p>
+
+    <label class="lbl" for="eEm">E-MAIL</label>
+    <div class="inp"><i data-i="mail"></i><input id="eEm" name="email" type="email" placeholder="seu@email.com" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" required></div>
+
+    <p class="err" id="errEsqueci" role="alert"></p>
+    <p class="lg-ok" id="okEsqueci" role="status" hidden></p>
+    <button class="btn pri" type="submit" id="btnEsqueci">Enviar link</button>
+    <p class="sm mute c lg-troca">Lembrou a senha? <a class="link" href="#entrar" data-ir="entrar">Voltar para Entrar</a></p>
   </form>
 
   <!-- ============ Criar conta ============ -->

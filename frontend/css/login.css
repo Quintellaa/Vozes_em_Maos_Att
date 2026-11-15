@@ -11,6 +11,7 @@
   display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-top: 16px;
   background: var(--soft); border: 1px solid var(--line); border-radius: 14px;
 }
+.lg-abas[hidden] { display: none; }
 .lg-abas button { height: 40px; border-radius: 10px; font-weight: 700; font-size: 14px; color: var(--mute); }
 .lg-abas button[aria-selected="true"] { background: #fff; color: var(--blue); box-shadow: 0 1px 4px rgba(15,23,42,.12); }
 
@@ -28,3 +29,10 @@
 .lg .err:empty { min-height: 0; }
 .lg .err a { color: var(--blue); font-weight: 700; }
 .lg-troca { margin: 8px 0 0; }
+
+/* Mensagem de sucesso (ex.: "enviamos o link") */
+.lg-ok {
+  margin: 4px 0 0; padding: 12px 14px; border-radius: 14px; font-size: 14px; line-height: 1.45;
+  background: #dcfce7; color: #166534; border: 1px solid #bbf7d0;
+}
+.lg-ok[hidden] { display: none; }

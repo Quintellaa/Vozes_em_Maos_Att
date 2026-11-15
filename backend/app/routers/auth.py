@@ -5,15 +5,23 @@ import re
 import time
 import unicodedata
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
+from app.mailer import send_password_reset
 from app.models import AuthProvider, TranslationHistory, User
-from app.schemas import AvatarUpload, PasswordChange, UserStats, SocialLogin, Token, UserLogin, UserOut, UserRegister, UserUpdate
-from app.security import create_access_token, hash_password, verify_password
+from app.schemas import (
+    AvatarUpload, ForgotPassword, PasswordChange, ResetPassword, SocialLogin, Token,
+    UserLogin, UserOut, UserRegister, UserStats, UserUpdate,
+)
+from app.security import (
+    create_access_token, create_password_reset_token, hash_password,
+    password_reset_token_matches, read_password_reset_token, verify_password,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -152,7 +160,65 @@ def change_password(
     db.commit()
 
 
-AVATAR_MAX_BYTES = 400 * 1024  # a foto recortada pelo front tem ~20–40 KB
+# ---------- Esqueci a senha ----------
+RESET_COOLDOWN_SECONDS = 60  # evita que alguém dispare dezenas de e-mails para a mesma pessoa
+_last_reset_email: dict[str, float] = {}
+
+
+@router.post("/forgot-password", status_code=status.HTTP_202_ACCEPTED)
+def forgot_password(
+    payload: ForgotPassword,
+    request: Request,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """Envia por e-mail um link para criar uma senha nova.
+
+    A resposta é sempre a mesma, exista ou não a conta: assim ninguém usa esta rota
+    para descobrir quais e-mails estão cadastrados no app.
+    """
+    answer = {"detail": "Se houver uma conta com esse e-mail, enviamos um link para criar uma nova senha."}
+    user = _find_by_email(db, payload.email)
+    if not user or not user.password_hash:  # sem conta, ou conta Google/Apple (não tem senha aqui)
+        return answer
+
+    email = user.email.lower()
+    now = time.monotonic()
+    if now - _last_reset_email.get(email, -RESET_COOLDOWN_SECONDS) < RESET_COOLDOWN_SECONDS:
+        return answer
+    _last_reset_email[email] = now
+
+    token = create_password_reset_token(user.id, user.password_hash)
+    base = (settings.app_url or str(request.base_url)).rstrip("/")
+    # O token vai depois do "#": essa parte do endereço não é enviada ao servidor,
+    # então não fica gravada em logs de acesso.
+    link = f"{base}/redefinir-senha.html#token={token}"
+    background.add_task(send_password_reset, user.email, user.name, link)
+    return answer
+
+
+@router.post("/reset-password", response_model=Token)
+def reset_password(payload: ResetPassword, db: Session = Depends(get_db)):
+    """Troca a senha usando o link do e-mail e já deixa a pessoa logada."""
+    invalid = HTTPException(
+        status.HTTP_400_BAD_REQUEST,
+        "Este link expirou ou já foi usado. Peça um novo em “Esqueci a senha”.",
+    )
+    data = read_password_reset_token(payload.token)
+    if not data:
+        raise invalid
+    user_id, fingerprint = data
+    user = db.get(User, user_id)
+    if not user or not password_reset_token_matches(fingerprint, user.password_hash):
+        raise invalid
+
+    user.password_hash = hash_password(payload.new_password)
+    db.commit()
+    db.refresh(user)
+    return _issue_token(user)
+
+
+AVATAR_MAX_BYTES =400 * 1024  # a foto recortada pelo front tem ~20–40 KB
 AVATAR_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 

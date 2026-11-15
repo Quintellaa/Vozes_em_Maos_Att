@@ -68,6 +68,8 @@ tests/              # pytest
 | POST   | `/auth/login`                | não | Login com e-mail/senha |
 | POST   | `/auth/social`               | não | Login Google/Apple — **mock**, ver TODO abaixo |
 | GET    | `/auth/me`                   | sim | Dados do usuário logado |
+| POST   | `/auth/forgot-password`      | não | "Esqueci a senha": envia por e-mail o link de redefinição (ver `.env.example`) |
+| POST   | `/auth/reset-password`       | não | Troca a senha com o token do link (vale 30 min, uma vez só) e já faz login |
 | GET    | `/history?type=&favorite=&search=` | sim | Lista histórico (com filtros) |
 | POST   | `/history`                   | sim | Cria um registro |
 | PATCH  | `/history/{id}/favorite`     | sim | Alterna favorito |
