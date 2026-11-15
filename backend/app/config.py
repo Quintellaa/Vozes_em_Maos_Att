@@ -20,6 +20,25 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     apple_client_id: str = ""
 
+    # ---- E-mail ("Esqueci a senha") ----
+    # Por quanto tempo o link de redefinição vale.
+    password_reset_expire_minutes: int = 30
+    # Endereço do site usado no link do e-mail (ex.: https://vozes-em-maos.onrender.com).
+    # Vazio = o mesmo endereço por onde a pessoa pediu o link.
+    app_url: str = ""
+    # Remetente que aparece no e-mail. Precisa ser um endereço liberado no serviço de envio.
+    mail_from: str = ""
+    mail_from_name: str = "Vozes em Mãos"
+    # Opção 1 — Brevo (API por HTTPS, plano grátis de 300 e-mails/dia).
+    # É a que funciona no plano grátis do Render, que bloqueia as portas de SMTP.
+    brevo_api_key: str = ""
+    # Opção 2 — SMTP (ex.: Gmail com "senha de app": smtp.gmail.com, porta 587).
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    # Nenhuma das duas configurada: o link aparece no terminal do backend (bom para testar).
+
     # Modelo de reconhecimento de Libras (gerado por tools/train_and_export.py).
     # Se o arquivo não existir, a API sobe normalmente e só a rota de
     # reconhecimento responde 503 — o resto do app continua funcionando.

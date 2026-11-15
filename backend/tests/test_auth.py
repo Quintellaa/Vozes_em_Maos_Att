@@ -58,3 +58,77 @@ def test_conta_google_tentando_senha(client):
 def test_nome_obrigatorio(client):
     r = client.post("/auth/register", json={"name": "  ", "email": "semnome@teste.com", "password": "senha123"})
     assert r.status_code == 422
+
+
+# ---------- Esqueci a senha ----------
+import pytest  # noqa: E402
+
+from app.routers import auth as auth_router  # noqa: E402
+
+
+@pytest.fixture
+def emails(monkeypatch):
+    """Troca o envio real por uma lista: cada item é (para, nome, link)."""
+    enviados = []
+    monkeypatch.setattr(auth_router, "send_password_reset", lambda to, name, link: enviados.append((to, name, link)))
+    auth_router._last_reset_email.clear()
+    return enviados
+
+
+def _token_do_link(link: str) -> str:
+    assert "/redefinir-senha.html#token=" in link
+    return link.split("#token=", 1)[1]
+
+
+def test_esqueci_senha_envia_link_e_troca_senha(client, emails):
+    client.post("/auth/register", json={"name": "Eva Lima", "email": "eva@teste.com", "password": "antiga123"})
+
+    r = client.post("/auth/forgot-password", json={"email": "EVA@teste.com"})
+    assert r.status_code == 202
+    assert len(emails) == 1 and emails[0][0] == "eva@teste.com"
+    token = _token_do_link(emails[0][2])
+
+    r = client.post("/auth/reset-password", json={"token": token, "new_password": "nova12345"})
+    assert r.status_code == 200 and r.json()["user"]["email"] == "eva@teste.com"
+    assert client.get("/auth/me", headers={"Authorization": f"Bearer {r.json()['access_token']}"}).status_code == 200
+
+    assert client.post("/auth/login", json={"email": "eva@teste.com", "password": "antiga123"}).status_code == 401
+    assert client.post("/auth/login", json={"email": "eva@teste.com", "password": "nova12345"}).status_code == 200
+
+
+def test_link_de_redefinicao_so_vale_uma_vez(client, emails):
+    client.post("/auth/register", json={"name": "Fê", "email": "fe@teste.com", "password": "antiga123"})
+    client.post("/auth/forgot-password", json={"email": "fe@teste.com"})
+    token = _token_do_link(emails[0][2])
+
+    assert client.post("/auth/reset-password", json={"token": token, "new_password": "nova12345"}).status_code == 200
+    r = client.post("/auth/reset-password", json={"token": token, "new_password": "outra123"})
+    assert r.status_code == 400
+
+
+def test_esqueci_senha_nao_revela_se_email_existe(client, emails):
+    client.post("/auth/social", json={"provider": "google", "name": "Gu", "email": "gu@gmail.com"})
+    sem_conta = client.post("/auth/forgot-password", json={"email": "ninguem@teste.com"})
+    conta_google = client.post("/auth/forgot-password", json={"email": "gu@gmail.com"})
+    assert sem_conta.status_code == conta_google.status_code == 202
+    assert sem_conta.json() == conta_google.json()
+    assert emails == []  # nenhuma das duas tem senha para redefinir
+
+
+def test_esqueci_senha_espera_antes_de_reenviar(client, emails):
+    client.post("/auth/register", json={"name": "Hugo", "email": "hugo@teste.com", "password": "antiga123"})
+    client.post("/auth/forgot-password", json={"email": "hugo@teste.com"})
+    client.post("/auth/forgot-password", json={"email": "hugo@teste.com"})
+    assert len(emails) == 1
+
+
+def test_token_de_redefinicao_nao_serve_para_entrar(client, emails):
+    client.post("/auth/register", json={"name": "Iris", "email": "iris@teste.com", "password": "antiga123"})
+    client.post("/auth/forgot-password", json={"email": "iris@teste.com"})
+    token = _token_do_link(emails[0][2])
+    assert client.get("/auth/me", headers={"Authorization": f"Bearer {token}"}).status_code == 401
+
+
+def test_token_invalido(client):
+    r = client.post("/auth/reset-password", json={"token": "isso-nao-e-um-token", "new_password": "nova12345"})
+    assert r.status_code == 400

@@ -18,6 +18,12 @@ services:
       # Retreinou o modelo? Troque aqui também (além do backend/.env).
       - key: MODEL_PATH
         value: models/libras_grupo_2026-11-02.joblib
+      # "Esqueci a senha": o plano grátis do Render bloqueia SMTP, então lá o envio é pela
+      # API da Brevo. sync: false = o Render pede o valor no painel (não fica no GitHub).
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
 
 databases:
   - name: vozes-em-maos-db
