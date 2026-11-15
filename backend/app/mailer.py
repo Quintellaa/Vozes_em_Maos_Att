@@ -1,20 +1,46 @@
 """Envio de e-mails (por enquanto, só o de redefinição de senha).
 
-Escolhe o jeito de enviar pelo que estiver no .env:
-  1. BREVO_API_KEY  → API da Brevo por HTTPS (funciona no plano grátis do Render);
-  2. SMTP_HOST      → servidor SMTP (ex.: Gmail com senha de app);
-  3. nenhum         → não envia: escreve o e-mail no terminal do backend (modo de teste).
+Escolhe o jeito de enviar pelo que estiver no .env (o primeiro preenchido vale):
+  1. MAILJET_API_KEY + MAILJET_SECRET_KEY → API da Mailjet por HTTPS (funciona no plano grátis do Render);
+  2. BREVO_API_KEY  → API da Brevo por HTTPS (também funciona no Render);
+  3. SMTP_HOST      → servidor SMTP (ex.: Gmail com senha de app);
+  4. nenhum         → não envia: escreve o e-mail no terminal do backend (modo de teste).
 """
+import base64
 import json
-import logging
 import smtplib
+import urllib.error
 import urllib.request
 from email.message import EmailMessage
 from html import escape
 
 from app.config import settings
 
-log = logging.getLogger("vozes.mailer")
+
+def _post_json(url: str, body: dict, headers: dict) -> None:
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode(),
+        headers={"Content-Type": "application/json", "Accept": "application/json", **headers},
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=15) as response:
+        response.read()
+
+
+def _send_mailjet(to: str, subject: str, text: str, html: str) -> None:
+    body = {
+        "Messages": [{
+            "From": {"Email": settings.mail_from, "Name": settings.mail_from_name},
+            "To": [{"Email": to}],
+            "Subject": subject,
+            "TextPart": text,
+            "HTMLPart": html,
+        }]
+    }
+    # A Mailjet usa as duas chaves como usuário e senha (autenticação "Basic").
+    credentials = base64.b64encode(f"{settings.mailjet_api_key}:{settings.mailjet_secret_key}".encode()).decode()
+    _post_json("https://api.mailjet.com/v3.1/send", body, {"Authorization": f"Basic {credentials}"})
 
 
 def _send_brevo(to: str, subject: str, text: str, html: str) -> None:
@@ -25,14 +51,7 @@ def _send_brevo(to: str, subject: str, text: str, html: str) -> None:
         "textContent": text,
         "htmlContent": html,
     }
-    request = urllib.request.Request(
-        "https://api.brevo.com/v3/smtp/email",
-        data=json.dumps(body).encode(),
-        headers={"api-key": settings.brevo_api_key, "Content-Type": "application/json", "Accept": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(request, timeout=15) as response:
-        response.read()
+    _post_json("https://api.brevo.com/v3/smtp/email", body, {"api-key": settings.brevo_api_key})
 
 
 def _send_smtp(to: str, subject: str, text: str, html: str) -> None:
@@ -57,17 +76,25 @@ def _send_smtp(to: str, subject: str, text: str, html: str) -> None:
 
 
 def send_email(to: str, subject: str, text: str, html: str) -> None:
-    """Envia um e-mail. Roda em segundo plano (BackgroundTasks), então só registra erros no log."""
+    """Envia um e-mail. Roda em segundo plano (BackgroundTasks), então só escreve erros no log.
+    (print, e não logging: aparece no terminal do uvicorn e nos Logs do Render sem configurar nada.)"""
     try:
-        if settings.brevo_api_key:
+        if settings.mailjet_api_key and settings.mailjet_secret_key:
+            _send_mailjet(to, subject, text, html)
+        elif settings.brevo_api_key:
             _send_brevo(to, subject, text, html)
         elif settings.smtp_host:
             _send_smtp(to, subject, text, html)
         else:
-            # print, e não log: aparece no terminal do uvicorn sem configurar nada.
-            print(f"\n[E-MAIL NÃO ENVIADO — configure BREVO_API_KEY ou SMTP_HOST no .env]\nPara: {to}\nAssunto: {subject}\n\n{text}\n", flush=True)
-    except Exception:
-        log.exception("Falha ao enviar e-mail para %s", to)
+            print(f"\n[E-MAIL NÃO ENVIADO — configure MAILJET_API_KEY e MAILJET_SECRET_KEY no .env]\nPara: {to}\nAssunto: {subject}\n\n{text}\n", flush=True)
+            return
+        print(f"[E-MAIL ENVIADO] Para: {to} | Assunto: {subject}", flush=True)
+    except urllib.error.HTTPError as err:
+        # O serviço de envio explica o motivo no corpo da resposta (ex.: remetente não confirmado).
+        detail = err.read().decode(errors="replace")[:500]
+        print(f"[FALHA AO ENVIAR E-MAIL] Para: {to} | HTTP {err.code}: {detail}", flush=True)
+    except Exception as err:
+        print(f"[FALHA AO ENVIAR E-MAIL] Para: {to} | {type(err).__name__}: {err}", flush=True)
 
 
 def send_password_reset(to: str, name: str, link: str) -> None:

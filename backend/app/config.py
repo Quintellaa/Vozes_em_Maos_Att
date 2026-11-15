@@ -29,15 +29,19 @@ class Settings(BaseSettings):
     # Remetente que aparece no e-mail. Precisa ser um endereço liberado no serviço de envio.
     mail_from: str = ""
     mail_from_name: str = "Vozes em Mãos"
-    # Opção 1 — Brevo (API por HTTPS, plano grátis de 300 e-mails/dia).
-    # É a que funciona no plano grátis do Render, que bloqueia as portas de SMTP.
+    # Opção 1 — Mailjet (API por HTTPS, plano grátis de 200 e-mails/dia).
+    # Funciona no plano grátis do Render, que bloqueia as portas de SMTP.
+    # As duas chaves ficam no painel da Mailjet, em "API Key Management".
+    mailjet_api_key: str = ""
+    mailjet_secret_key: str = ""
+    # Opção 2 — Brevo (API por HTTPS, plano grátis de 300 e-mails/dia). Também funciona no Render.
     brevo_api_key: str = ""
-    # Opção 2 — SMTP (ex.: Gmail com "senha de app": smtp.gmail.com, porta 587).
+    # Opção 3 — SMTP (ex.: Gmail com "senha de app": smtp.gmail.com, porta 587). Só fora do Render grátis.
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
-    # Nenhuma das duas configurada: o link aparece no terminal do backend (bom para testar).
+    # Nenhuma configurada: o link aparece no terminal do backend (bom para testar).
 
     # Modelo de reconhecimento de Libras (gerado por tools/train_and_export.py).
     # Se o arquivo não existir, a API sobe normalmente e só a rota de
