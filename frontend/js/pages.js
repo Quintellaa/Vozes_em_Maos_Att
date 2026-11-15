@@ -185,7 +185,9 @@ const pages = {
 
   // Página aberta pelo link do e-mail: redefinir-senha.html#token=...
   redefinir() {
-    const token = new URLSearchParams(location.hash.slice(1)).get('token');
+    // Código do link do e-mail: #c=... (links antigos usavam #token=...)
+    const params = new URLSearchParams(location.hash.slice(1));
+    const token = params.get('c') || params.get('token');
     // Tira o token da barra de endereço (e do histórico do navegador) assim que lê.
     history.replaceState(null, '', location.pathname);
 

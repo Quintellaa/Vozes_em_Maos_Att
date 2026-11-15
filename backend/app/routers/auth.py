@@ -4,6 +4,7 @@ import binascii
 import re
 import time
 import unicodedata
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy import func
@@ -13,14 +14,13 @@ from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
 from app.mailer import send_password_reset
-from app.models import AuthProvider, TranslationHistory, User
+from app.models import AuthProvider, PasswordResetCode, TranslationHistory, User
 from app.schemas import (
     AvatarUpload, ForgotPassword, PasswordChange, ResetPassword, SocialLogin, Token,
     UserLogin, UserOut, UserRegister, UserStats, UserUpdate,
 )
 from app.security import (
-    create_access_token, create_password_reset_token, hash_password,
-    password_reset_token_matches, read_password_reset_token, verify_password,
+    create_access_token, hash_password, hash_password_reset_code, new_password_reset_code, verify_password,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -188,31 +188,48 @@ def forgot_password(
         return answer
     _last_reset_email[email] = now
 
-    token = create_password_reset_token(user.id, user.password_hash)
+    # Um código novo invalida os anteriores; aproveita e limpa os vencidos de todo mundo.
+    now_utc = _utcnow()
+    db.query(PasswordResetCode).filter(
+        (PasswordResetCode.user_id == user.id) | (PasswordResetCode.expires_at < now_utc)
+    ).delete(synchronize_session=False)
+    code, code_hash = new_password_reset_code()
+    expires = now_utc + timedelta(minutes=settings.password_reset_expire_minutes)
+    db.add(PasswordResetCode(user_id=user.id, code_hash=code_hash, expires_at=expires))
+    db.commit()
+
     base = (settings.app_url or str(request.base_url)).rstrip("/")
-    # O token vai depois do "#": essa parte do endereço não é enviada ao servidor,
+    # O código vai depois do "#": essa parte do endereço não é enviada ao servidor,
     # então não fica gravada em logs de acesso.
-    link = f"{base}/redefinir-senha.html#token={token}"
-    background.add_task(send_password_reset, user.email, user.name, link)
+    link = f"{base}/redefinir-senha.html#c={code}"
+    background.add_task(send_password_reset, user.email, user.name, link, f"{base}/img/mascote-email.png")
     return answer
+
+
+def _utcnow() -> datetime:
+    """Agora em UTC, sem fuso (igual ao que o SQLite e o PostgreSQL devolvem nessa coluna)."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 @router.post("/reset-password", response_model=Token)
 def reset_password(payload: ResetPassword, db: Session = Depends(get_db)):
-    """Troca a senha usando o link do e-mail e já deixa a pessoa logada."""
+    """Troca a senha usando o código do link do e-mail e já deixa a pessoa logada."""
     invalid = HTTPException(
         status.HTTP_400_BAD_REQUEST,
         "Este link expirou ou já foi usado. Peça um novo em “Esqueci a senha”.",
     )
-    data = read_password_reset_token(payload.token)
-    if not data:
+    entry = db.query(PasswordResetCode).filter(
+        PasswordResetCode.code_hash == hash_password_reset_code(payload.token.strip())
+    ).first()
+    if not entry or entry.expires_at < _utcnow():
         raise invalid
-    user_id, fingerprint = data
-    user = db.get(User, user_id)
-    if not user or not password_reset_token_matches(fingerprint, user.password_hash):
+    user = db.get(User, entry.user_id)
+    if not user or not user.password_hash:
         raise invalid
 
     user.password_hash = hash_password(payload.new_password)
+    # Link usado (e qualquer outro pendente dessa conta) deixa de valer.
+    db.query(PasswordResetCode).filter(PasswordResetCode.user_id == user.id).delete(synchronize_session=False)
     db.commit()
     db.refresh(user)
     return _issue_token(user)
