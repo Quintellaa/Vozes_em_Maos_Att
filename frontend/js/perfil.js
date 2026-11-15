@@ -384,13 +384,11 @@ const Perfil = {
     render();
     renderComunidades();
     Comunidades.sincronizar().catch(reportApiError); // traz do servidor as comunidades em que você entrou
-    // Números do cartão (conta nova começa tudo em 0)
+    // Número de traduções do cartão (conta nova começa em 0)
     Api.myStats()
       .then(st => {
         const fmt = n => (Number(n) || 0).toLocaleString('pt-BR');
         $('#stTrad').textContent = fmt(st.translations);
-        $('#stAulas').textContent = fmt(st.lessons);
-        $('#stSelos').textContent = fmt(st.badges);
       })
       .catch(reportApiError);
     sincronizarPrefs();

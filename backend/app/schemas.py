@@ -81,8 +81,6 @@ class UserUpdate(BaseModel):
 
 class UserStats(BaseModel):
     translations: int  # traduções salvas no histórico
-    lessons: int       # aulas concluídas (ainda não existe a função de aulas → sempre 0)
-    badges: int        # selos conquistados (ainda não existe a função de selos → sempre 0)
 
 
 class AvatarUpload(BaseModel):

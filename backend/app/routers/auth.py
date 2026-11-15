@@ -266,7 +266,6 @@ def my_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Números do cartão do perfil. Conta nova começa com tudo em 0."""
+    """Número de traduções do cartão do perfil. Conta nova começa em 0."""
     translations = db.query(TranslationHistory).filter(TranslationHistory.user_id == current_user.id).count()
-    # TODO: quando existirem aulas e selos no app, contar aqui a partir das tabelas deles.
-    return UserStats(translations=translations, lessons=0, badges=0)
+    return UserStats(translations=translations)
