@@ -65,7 +65,7 @@ const Api = {
   // Perfil: mande só os campos que mudaram ({ name }, { handle } ou os dois).
   updateMe: fields => apiRequest('/auth/me', { method: 'PATCH', body: fields, auth: true }),
 
-  // Números do perfil: { translations, lessons, badges }
+  // Números do perfil: { translations }
   myStats: () => apiRequest('/auth/me/stats', { auth: true }),
 
   // Foto de perfil: dataUrl = "data:image/jpeg;base64,..." (já recortada em js/perfil.js)

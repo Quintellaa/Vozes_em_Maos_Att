@@ -88,7 +88,7 @@ def test_foto_invalida(client):
 
 def test_estatisticas_comecam_zeradas_e_contam_traducoes(client):
     _, h = _novo_usuario(client)
-    assert client.get("/auth/me/stats", headers=h).json() == {"translations": 0, "lessons": 0, "badges": 0}
+    assert client.get("/auth/me/stats", headers=h).json() == {"translations": 0}
     client.post("/history", json={"type": "t", "text": "olá"}, headers=h)
     client.post("/history", json={"type": "l", "text": "obrigado"}, headers=h)
     assert client.get("/auth/me/stats", headers=h).json()["translations"] == 2
