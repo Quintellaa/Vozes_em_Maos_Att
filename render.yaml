@@ -18,13 +18,12 @@ services:
       # Retreinou o modelo? Troque aqui também (além do backend/.env).
       - key: MODEL_PATH
         value: models/libras_grupo_2026-11-02.joblib
-      # "Esqueci a senha": o plano grátis do Render bloqueia SMTP, então lá o envio é pela
-      # API da Mailjet. sync: false = o Render pede o valor no painel (não fica no GitHub).
-      - key: MAILJET_API_KEY
+      # "Esqueci a senha": o plano grátis do Render bloqueia SMTP, então lá o envio é pelo
+      # Gmail através de um Google Apps Script (COMO-CONFIGURAR-EMAIL.md).
+      # sync: false = o Render pede o valor no painel (não fica no GitHub).
+      - key: GMAIL_SCRIPT_URL
         sync: false
-      - key: MAILJET_SECRET_KEY
-        sync: false
-      - key: MAIL_FROM
+      - key: GMAIL_SCRIPT_SECRET
         sync: false
 
 databases:

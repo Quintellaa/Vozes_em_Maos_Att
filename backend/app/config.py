@@ -29,14 +29,16 @@ class Settings(BaseSettings):
     # Remetente que aparece no e-mail. Precisa ser um endereço liberado no serviço de envio.
     mail_from: str = ""
     mail_from_name: str = "Vozes em Mãos"
-    # Opção 1 — Mailjet (API por HTTPS, plano grátis de 200 e-mails/dia).
-    # Funciona no plano grátis do Render, que bloqueia as portas de SMTP.
-    # As duas chaves ficam no painel da Mailjet, em "API Key Management".
+    # Opção 1 — Gmail por um Google Apps Script (tools/email-gmail/Codigo.gs).
+    # Funciona no plano grátis do Render, que bloqueia as portas de SMTP. Passo a passo em COMO-CONFIGURAR-EMAIL.md.
+    gmail_script_url: str = ""     # endereço do script implantado, terminando em /exec
+    gmail_script_secret: str = ""  # o mesmo valor de SEGREDO no script
+    # Opção 2 — Mailjet (API por HTTPS, plano grátis de 200 e-mails/dia). Também funciona no Render.
     mailjet_api_key: str = ""
     mailjet_secret_key: str = ""
-    # Opção 2 — Brevo (API por HTTPS, plano grátis de 300 e-mails/dia). Também funciona no Render.
+    # Opção 3 — Brevo (API por HTTPS, plano grátis de 300 e-mails/dia). Também funciona no Render.
     brevo_api_key: str = ""
-    # Opção 3 — SMTP (ex.: Gmail com "senha de app": smtp.gmail.com, porta 587). Só fora do Render grátis.
+    # Opção 4 — SMTP (ex.: Gmail com "senha de app": smtp.gmail.com, porta 587). Só fora do Render grátis.
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""

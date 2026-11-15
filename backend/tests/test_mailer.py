@@ -31,10 +31,55 @@ def pedidos(monkeypatch):
         return _RespostaFalsa()
 
     monkeypatch.setattr(mailer.urllib.request, "urlopen", urlopen_falso)
-    for campo in ("mailjet_api_key", "mailjet_secret_key", "brevo_api_key", "smtp_host"):
+    for campo in ("gmail_script_url", "gmail_script_secret", "mailjet_api_key", "mailjet_secret_key", "brevo_api_key", "smtp_host"):
         monkeypatch.setattr(settings, campo, "")
     monkeypatch.setattr(settings, "mail_from", "contato@vozes.com")
     return feitos
+
+
+def _resposta_do_script(monkeypatch, pedidos, corpo: bytes):
+    """Faz o urlopen falso devolver `corpo`, como se fosse a resposta do Google Apps Script."""
+    class Resposta(_RespostaFalsa):
+        def read(self):
+            return corpo
+
+    def urlopen_falso(request, timeout=None):
+        pedidos.append(request)
+        return Resposta()
+
+    monkeypatch.setattr(mailer.urllib.request, "urlopen", urlopen_falso)
+    monkeypatch.setattr(settings, "gmail_script_url", "https://script.google.com/macros/s/ABC/exec")
+    monkeypatch.setattr(settings, "gmail_script_secret", "meu-segredo")
+
+
+def test_gmail_script_monta_o_pedido_certo(pedidos, monkeypatch, capsys):
+    _resposta_do_script(monkeypatch, pedidos, b'{"ok": true, "restantesHoje": 99}')
+    monkeypatch.setattr(settings, "mailjet_api_key", "chave")  # mesmo com Mailjet configurada, o Gmail vem primeiro
+    monkeypatch.setattr(settings, "mailjet_secret_key", "segredo")
+
+    mailer.send_password_reset("ana@teste.com", "Ana Souza", "https://app/redefinir-senha.html#token=abc")
+
+    assert len(pedidos) == 1
+    assert pedidos[0].full_url == "https://script.google.com/macros/s/ABC/exec"
+    corpo = json.loads(pedidos[0].data)
+    assert corpo["secret"] == "meu-segredo" and corpo["to"] == "ana@teste.com"
+    assert "#token=abc" in corpo["text"] and "#token=abc" in corpo["html"]
+    assert "[E-MAIL ENVIADO]" in capsys.readouterr().out
+
+
+def test_gmail_script_recusou_aparece_no_log(pedidos, monkeypatch, capsys):
+    _resposta_do_script(monkeypatch, pedidos, b'{"ok": false, "error": "Segredo incorreto"}')
+    mailer.send_email("ana@teste.com", "Oi", "texto", "<p>html</p>")
+    saida = capsys.readouterr().out
+    assert "[FALHA AO ENVIAR E-MAIL]" in saida and "Segredo incorreto" in saida
+
+
+def test_gmail_script_mal_implantado_explica_o_que_conferir(pedidos, monkeypatch, capsys):
+    # Implantação sem "Qualquer pessoa": o Google devolve uma página de login em HTML.
+    _resposta_do_script(monkeypatch, pedidos, b"<!DOCTYPE html><html>Fazer login</html>")
+    mailer.send_email("ana@teste.com", "Oi", "texto", "<p>html</p>")
+    saida = capsys.readouterr().out
+    assert "[FALHA AO ENVIAR E-MAIL]" in saida and "/exec" in saida and "Qualquer pessoa" in saida
 
 
 def test_mailjet_monta_o_pedido_certo(pedidos, monkeypatch, capsys):

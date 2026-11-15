@@ -1,10 +1,12 @@
 """Envio de e-mails (por enquanto, só o de redefinição de senha).
 
 Escolhe o jeito de enviar pelo que estiver no .env (o primeiro preenchido vale):
-  1. MAILJET_API_KEY + MAILJET_SECRET_KEY → API da Mailjet por HTTPS (funciona no plano grátis do Render);
-  2. BREVO_API_KEY  → API da Brevo por HTTPS (também funciona no Render);
-  3. SMTP_HOST      → servidor SMTP (ex.: Gmail com senha de app);
-  4. nenhum         → não envia: escreve o e-mail no terminal do backend (modo de teste).
+  1. GMAIL_SCRIPT_URL + GMAIL_SCRIPT_SECRET → seu Gmail, por um Google Apps Script
+     (tools/email-gmail/Codigo.gs; funciona no plano grátis do Render);
+  2. MAILJET_API_KEY + MAILJET_SECRET_KEY → API da Mailjet por HTTPS;
+  3. BREVO_API_KEY  → API da Brevo por HTTPS;
+  4. SMTP_HOST      → servidor SMTP (não funciona no plano grátis do Render);
+  5. nenhum         → não envia: escreve o e-mail no terminal do backend (modo de teste).
 """
 import base64
 import json
@@ -17,15 +19,38 @@ from html import escape
 from app.config import settings
 
 
-def _post_json(url: str, body: dict, headers: dict) -> None:
+def _post_json(url: str, body: dict, headers: dict | None = None) -> bytes:
     request = urllib.request.Request(
         url,
         data=json.dumps(body).encode(),
-        headers={"Content-Type": "application/json", "Accept": "application/json", **headers},
+        headers={"Content-Type": "application/json", "Accept": "application/json", **(headers or {})},
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=15) as response:
-        response.read()
+    with urllib.request.urlopen(request, timeout=20) as response:
+        return response.read()
+
+
+def _send_gmail_script(to: str, subject: str, text: str, html: str) -> None:
+    # O Google responde com um redirecionamento; o urllib segue sozinho e devolve o JSON do script.
+    raw = _post_json(settings.gmail_script_url, {
+        "secret": settings.gmail_script_secret,
+        "to": to,
+        "subject": subject,
+        "text": text,
+        "html": html,
+        "name": settings.mail_from_name,
+    })
+    try:
+        answer = json.loads(raw)
+    except ValueError:
+        # Veio uma página do Google em vez de JSON: quase sempre o script não foi implantado
+        # com "Quem pode acessar: Qualquer pessoa", ou o endereço não termina em /exec.
+        raise RuntimeError(
+            "o script do Gmail não respondeu como esperado. Confira se GMAIL_SCRIPT_URL termina em /exec "
+            "e se a implantação está com 'Quem pode acessar: Qualquer pessoa'."
+        )
+    if not answer.get("ok"):
+        raise RuntimeError(f"o script do Gmail recusou: {answer.get('error')}")
 
 
 def _send_mailjet(to: str, subject: str, text: str, html: str) -> None:
@@ -79,14 +104,16 @@ def send_email(to: str, subject: str, text: str, html: str) -> None:
     """Envia um e-mail. Roda em segundo plano (BackgroundTasks), então só escreve erros no log.
     (print, e não logging: aparece no terminal do uvicorn e nos Logs do Render sem configurar nada.)"""
     try:
-        if settings.mailjet_api_key and settings.mailjet_secret_key:
+        if settings.gmail_script_url and settings.gmail_script_secret:
+            _send_gmail_script(to, subject, text, html)
+        elif settings.mailjet_api_key and settings.mailjet_secret_key:
             _send_mailjet(to, subject, text, html)
         elif settings.brevo_api_key:
             _send_brevo(to, subject, text, html)
         elif settings.smtp_host:
             _send_smtp(to, subject, text, html)
         else:
-            print(f"\n[E-MAIL NÃO ENVIADO — configure MAILJET_API_KEY e MAILJET_SECRET_KEY no .env]\nPara: {to}\nAssunto: {subject}\n\n{text}\n", flush=True)
+            print(f"\n[E-MAIL NÃO ENVIADO — configure GMAIL_SCRIPT_URL e GMAIL_SCRIPT_SECRET (ver COMO-CONFIGURAR-EMAIL.md)]\nPara: {to}\nAssunto: {subject}\n\n{text}\n", flush=True)
             return
         print(f"[E-MAIL ENVIADO] Para: {to} | Assunto: {subject}", flush=True)
     except urllib.error.HTTPError as err:
